@@ -2,6 +2,7 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 
 import type { AuthUser } from "@/lib/mock-library-api";
+import { useRouter } from "next/navigation";
 
 type Session = {
   token: string;
@@ -18,6 +19,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
 
   const value = useMemo<AuthContextValue>(
@@ -25,7 +27,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isAuthenticated: Boolean(session?.token),
       session,
       signIn: (nextSession) => setSession(nextSession),
-      signOut: () => setSession(null),
+      signOut: () => {
+        setSession(null);
+        localStorage.removeItem("token");
+        router.push("/");
+
+      },
     }),
     [session],
   );

@@ -65,35 +65,12 @@ export default function Home() {
       "&scope=all";
   };
 
-  const getUser = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.error('No token found');
-      return;
-    }
 
-    const { access_token } = JSON.parse(token);
-    fetch("/api/users", {
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-      },
-    })
-      .then(res => res.json())
-      .then(data => console.log(data));
-  }
 
-  const onSubmit = (values: LoginValues) => {
-    form.clearErrors("root");
-    // loginMutation.mutate({
-    //   identifier: values.identifier,
-    //   password: values.password,
-    // });
-    login();
-  };
   return (
     <>
       <main className="auth-backdrop min-h-screen px-4 py-4 sm:px-6 lg:px-8">
-        <div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-7xl items-stretch gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="mx-auto  min-h-[calc(100vh-2rem)] max-w-[500px] flex-col items-center gap-6 lg:flex">
           <section className="panel-surface hidden overflow-hidden bg-hero p-8 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
             <div className="space-y-4">
               <span className="data-chip border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground">
@@ -104,6 +81,10 @@ export default function Home() {
                 <p className="max-w-lg text-base text-primary-foreground/80">
                   A focused desk view for issuing, returning, and renewing books without breaking flow.
                 </p>
+                <Button onClick={login} className="w-full" >
+                  {loginMutation.isPending ? <Loader2 className="animate-spin" /> : <ArrowRight />}
+                  Login
+                </Button>
               </div>
             </div>
 
@@ -119,7 +100,7 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="flex items-center justify-center">
+          {/* <section className="flex items-center justify-center">
             <Card className="panel-surface w-full max-w-md border-border/70">
               <CardHeader className="space-y-3">
                 <div className="flex items-center gap-3">
@@ -171,15 +152,12 @@ export default function Home() {
                       <div className="inline-feedback">{form.formState.errors.root.message}</div>
                     ) : null}
 
-                    <Button type="submit" className="w-full" disabled={!form.formState.isValid || loginMutation.isPending}>
-                      {loginMutation.isPending ? <Loader2 className="animate-spin" /> : <ArrowRight />}
-                      Continue to dashboard
-                    </Button>
+                    
                   </form>
                 </Form>
               </CardContent>
             </Card>
-          </section>
+          </section> */}
         </div>
       </main>
     </>
