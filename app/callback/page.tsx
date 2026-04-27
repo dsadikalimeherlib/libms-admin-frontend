@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function CallbackPage() {
+function CallbackContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
@@ -18,10 +18,18 @@ export default function CallbackPage() {
 
                     localStorage.setItem('token', JSON.stringify(data));
 
-                    router.push('/');
+                    router.push('/dashboard');
                 });
         }
     }, [searchParams]);
 
     return <p>Logging you in...</p>;
+}
+
+export default function CallbackPage() {
+    return (
+        <Suspense fallback={<p>Loading...</p>}>
+            <CallbackContent />
+        </Suspense>
+    );
 }

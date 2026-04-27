@@ -1,10 +1,11 @@
 'use client';
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, BookMarked, Loader2, ShieldCheck } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -23,7 +24,17 @@ const loginSchema = z.object({
 type LoginValues = z.infer<typeof loginSchema>;
 
 export default function Home() {
+  const router = useRouter();
   const { isAuthenticated, signIn } = useAuth();
+
+  // Redirect to dashboard if token exists in localStorage
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      router.push('/dashboard');
+    }
+  }, [router]);
+
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -38,7 +49,7 @@ export default function Home() {
     onSuccess: (session) => {
       signIn(session);
       toast.success(`Welcome back, ${session.user.name}.`);
-      navigate("/dashboard", { replace: true });
+      router.push("/dashboard");
     },
     onError: (error: Error) => {
       form.setError("root", { message: error.message });
