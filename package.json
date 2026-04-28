@@ -3,14 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
-    "frappe-react-sdk": "^1.14.0",
-    "next": "16.2.4",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -46,8 +44,10 @@
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
+    "frappe-react-sdk": "^1.14.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.462.0",
+    "next": "16.2.4",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
@@ -63,12 +63,14 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@react-dev-inspector/babel-plugin": "^2.0.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "react-dev-inspector": "^2.0.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
