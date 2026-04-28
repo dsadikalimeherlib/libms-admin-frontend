@@ -70,6 +70,7 @@ export default function Home() {
   return (
     <>
       <main className="auth-backdrop min-h-screen px-4 py-4 sm:px-6 lg:px-8">
+        <img src="/login-bg.png" className="absolute left-0 bottom-0 w-full h-auto" /> {/* Background image */}
         <div className="mx-auto  min-h-[calc(100vh-2rem)] max-w-[500px] flex-col items-center gap-6 lg:flex">
           <section className="panel-surface hidden overflow-hidden bg-hero p-8 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
             <div className="space-y-4">
