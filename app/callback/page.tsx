@@ -23,25 +23,33 @@ function CallbackContent() {
     }, [searchParams, router]);
 
     return (
-        <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
-            <div className="mx-auto flex min-h-[calc(100vh-3rem)] items-center justify-center">
-                <Card className="panel-surface w-full max-w-lg border-border/70 shadow-panel">
-                    <CardHeader className="space-y-3 p-6">
-                        <CardTitle>Completing sign in</CardTitle>
-                        <CardDescription>We are securely completing your login and redirecting you to the dashboard.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4 p-6">
-                        <div className="flex items-center gap-3 rounded-2xl border border-border/70 bg-muted/60 p-4">
-                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                            <p className="text-sm text-muted-foreground">Logging you in and preparing your workspace…</p>
+        <>
+
+            {/* flex items-center justify-center relative overflow-hidden */}
+            <main className="auth-backdrop min-h-screen px-4 py-4 sm:px-6 lg:px-8 ">
+
+                <img src="/login-bg.png" className="absolute left-0 top-0 w-full h-auto z-0" /> {/* Background image */}
+                <div className="mx-auto   max-w-[500px] flex-col items-center gap-6 lg:flex">
+
+                    <div className="space-y-4 flex flex-col items-center justify-center text-center min-h-[calc(100vh)]">
+
+                        <div className="space-y-8  relative z-10 h-[460px] flex flex-col  bg-[#fff] rounded-lg p-8 shadow-lg">
+
+                            <div className="flex justify-center ">
+                                <img src="/logo-2.svg" alt="Library Logo" className="mb-6 w-[300px]" />
+                            </div>
+                            <div className="loader mx-[123px] my-[107px]"></div>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                            If this takes longer than expected, please wait a moment or refresh the page.
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
-        </main>
+                    </div>
+
+                    <div className="grid gap-4">
+
+                    </div>
+
+
+                </div>
+            </main>
+        </>
     );
 }
 

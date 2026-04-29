@@ -69,28 +69,35 @@ export default function Home() {
 
   return (
     <>
-      <main className="auth-backdrop min-h-screen px-4 py-4 sm:px-6 lg:px-8">
-        <img src="/login-bg.png" className="absolute left-0 bottom-0 w-full h-auto" /> {/* Background image */}
-        <div className="mx-auto  min-h-[calc(100vh-2rem)] max-w-[500px] flex-col items-center gap-6 lg:flex">
-          <section className="panel-surface hidden overflow-hidden bg-hero p-8 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
-            <div className="space-y-4">
-              <span className="data-chip border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground">
-                Library Management System
-              </span>
-              <div className="space-y-3">
-                <h1 className="max-w-xl text-4xl font-bold leading-tight">Library Admin Panel built for circulation speed.</h1>
-                <p className="max-w-lg text-base text-primary-foreground/80">
-                  A focused desk view for issuing, returning, and renewing books without breaking flow.
-                </p>
-                <Button onClick={login} className="w-full" >
-                  {loginMutation.isPending ? <Loader2 className="animate-spin" /> : <ArrowRight />}
-                  Login
-                </Button>
-              </div>
-            </div>
+      {/* flex items-center justify-center relative overflow-hidden */}
+      <main className="auth-backdrop min-h-screen px-4 py-4 sm:px-6 lg:px-8 ">
 
-            <div className="grid gap-4">
-              {/* {featureList.map((item) => (
+        <img src="/login-bg.png" className="absolute left-0 top-0 w-full h-auto z-0" /> {/* Background image */}
+        <div className="mx-auto   max-w-[500px] flex-col items-center gap-6 lg:flex">
+          {/* <section className="panel-surface hidden overflow-hidden  p-8  lg:flex lg:flex-col lg:justify-between"> */}
+
+          <div className="space-y-4 flex flex-col items-center justify-center text-center min-h-[calc(100vh)]">
+            {/* <span className="data-chip border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground">
+                Library Management System
+              </span> */}
+            <div className="space-y-8  relative z-10 h-[460px] flex flex-col  bg-[#fff] rounded-lg p-8 shadow-lg">
+              {/* <h1 className="max-w-xl text-3xl font-bold leading-tight">Library Management System</h1> */}
+              {/* <p className="max-w-lg text-base text-primary-foreground/80">
+                  A focused desk view for issuing, returning, and renewing books without breaking flow.
+                </p> */}
+              <div className="flex justify-center ">
+                <img src="/logo-2.svg" alt="Library Logo" className="mb-6 w-[300px]" />
+              </div>
+              <Button onClick={login} className="w-[300px] cursor-pointer  text-[20px] font-bold h-auto bg-transparent !shadow-none hover:bg-transparent"  >
+                {/* {loginMutation.isPending ? <Loader2 className="animate-spin" /> : <ArrowRight />} */}
+                {/* Login to Admin Panel */}
+                <img src="/login-btn.jpg" className="w-full h-auto" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-4">
+            {/* {featureList.map((item) => (
                 <div key={item} className="rounded-lg border border-primary-foreground/15 bg-primary-foreground/10 p-4">
                   <div className="flex items-start gap-3">
                     <ShieldCheck className="mt-0.5" />
@@ -98,8 +105,8 @@ export default function Home() {
                   </div>
                 </div>
               ))} */}
-            </div>
-          </section>
+          </div>
+          {/* </section> */}
 
           {/* <section className="flex items-center justify-center">
             <Card className="panel-surface w-full max-w-md border-border/70">
