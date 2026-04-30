@@ -104,7 +104,7 @@ body {
   --warning-foreground: 30 60% 15%;
 
   --radius: 0.75rem;
-  --gradient-hero: linear-gradient(135deg, hsl(var(--panel)) 0%, hsl(214 78% 40%) 100%);
+  --gradient-hero: linear-gradient(135deg, hsl(var(--panel)) 0%, hsl(178 100% 35%) 100%);
   --gradient-shelf: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(210 38% 96%) 100%);
   --shadow-panel: 0 16px 40px -18px hsl(220 50% 12% / 0.26);
   --shadow-lift: 0 22px 44px -18px hsl(214 72% 26% / 0.34);
@@ -238,7 +238,7 @@ body {
   }
 
   .sticky-submit-bar {
-    @apply sticky bottom-0 z-10 mt-6 flex flex-col gap-3 rounded-lg border border-border/70 bg-background/95 p-3 shadow-panel backdrop-blur md:flex-row md:items-center md:justify-between;
+    @apply bottom-0 z-10 mt-6 flex flex-col gap-3 rounded-lg border border-border/70 bg-background/95 p-3 shadow-panel backdrop-blur md:flex-row md:items-center md:justify-between;
   }
 
   .field-grid {
@@ -272,4 +272,8 @@ body {
   to {
     transform: rotate(.5turn)
   }
+}
+
+.pattern-bg {
+  background: url(/pattern.jpg) repeat;
 }
