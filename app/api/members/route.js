@@ -9,6 +9,9 @@ export async function GET(req) {
             );
         }
 
+        const url = new URL(req.url);
+        const text = url.searchParams.get("text") || "";
+
         const res = await fetch(
             "https://libms-dev.aakvaerp.com/api/method/frappe.desk.search.search_link",
             {
@@ -16,9 +19,8 @@ export async function GET(req) {
                 headers: {
                     Authorization: authHeader, // Bearer token passed directly
                 },
-                // txt=&doctype=Member&ignore_user_permissions=0&reference_doctype=Book+Transaction&page_length=25&filters=%7B%22membership_status%22%3A%22Active%22%7D
                 body: new URLSearchParams({
-                    txt: "",
+                    txt: text,
                     doctype: "Member",
                     ignore_user_permissions: "0",
                     reference_doctype: "Book Transaction",

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { addDays } from "date-fns";
@@ -26,9 +26,10 @@ import {
   type Member,
   type TransactionLookup,
 } from "@/lib/mock-library-api";
+import { getMembers } from "@/services/members";
 
 const issueFormSchema = z.object({
-  memberQuery: z.string().trim().min(3, "Enter member ID, mobile, or card number."),
+  memberQuery: z.string().trim(),
   barcode: z
     .string()
     .trim()
@@ -50,6 +51,12 @@ const buildIssuePreview = (book: Book): IssuePreviewRow => {
     transactionDate: transactionDate.toISOString(),
     dueDate: addDays(transactionDate, 14).toISOString(),
   };
+};
+
+type MemberSuggestion = {
+  id: string;
+  value: string;
+  description: string;
 };
 
 const RootError = ({ message }: { message?: string }) =>
@@ -121,6 +128,32 @@ const IssueTab = () => {
   });
   const [member, setMember] = useState<Member | null>(null);
   const [queuedBooks, setQueuedBooks] = useState<IssuePreviewRow[]>([]);
+  const [memberSuggestions, setMemberSuggestions] = useState<MemberSuggestion[]>([]);
+  const [memberInputFocused, setMemberInputFocused] = useState(false);
+  const [dropdownActive, setDropdownActive] = useState(false);
+
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const watchedQuery = form.watch("memberQuery");
+
+  const loadMemberSuggestions = async (query: string) => {
+    try {
+      const result = (await getMembers({ text: query })) as MemberSuggestion[];
+      setMemberSuggestions(result ?? []);
+    } catch (error) {
+      setMemberSuggestions([]);
+    }
+  };
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      void loadMemberSuggestions(watchedQuery);
+    }, 500);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [watchedQuery]);
 
   const memberMutation = useMutation({
     mutationFn: validateMember,
@@ -236,13 +269,43 @@ const IssueTab = () => {
                 <FormItem>
                   <FormLabel>Member search</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="MBR-1042 / 9876543210 / CARD-88421" autoComplete="off" />
+                    <Input
+                      {...field}
+                      placeholder="MBR-1042 / 9876543210 / CARD-88421"
+                      autoComplete="off"
+                      onFocus={() => setMemberInputFocused(true)}
+                      onBlur={() => setMemberInputFocused(false)}
+                    />
                   </FormControl>
                   <FormMessage />
+                  {memberSuggestions?.length > 0 && (memberInputFocused || dropdownActive) && (
+                    <div
+                      className="mt-2 max-h-40 overflow-y-auto border rounded-md bg-background"
+                      onMouseEnter={() => setDropdownActive(true)}
+                      onMouseLeave={() => setDropdownActive(false)}
+                    >
+                      {memberSuggestions.map((m) => (
+                        <div
+                          key={m.id}
+                          className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                          onClick={() => {
+                            const selectionValue = m.value || m.id;
+                            form.setValue("memberQuery", selectionValue, { shouldValidate: false });
+                            setMemberSuggestions([]);
+                            form.clearErrors();
+                            memberMutation.mutate(selectionValue);
+                          }}
+                        >
+                          <div className="font-medium">{m.value}</div>
+                          <div className="text-sm text-muted-foreground">{m.description}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </FormItem>
               )}
             />
-            <Button type="button" onClick={onValidateMember} disabled={memberMutation.isPending} className="md:mt-8">
+            <Button type="button" onClick={onValidateMember} disabled={memberMutation.isPending} className="md:mt-5.75">
               {memberMutation.isPending ? <Loader2 className="animate-spin" /> : <Search />}
               Validate member
             </Button>
@@ -506,14 +569,14 @@ const RenewTab = () => {
       setTransaction((current) =>
         current
           ? {
-              ...current,
-              row: {
-                ...current.row,
-                dueDate: result.dueDate,
-                returnDate: result.returnDate,
-                dueCharges: result.dueCharges,
-              },
-            }
+            ...current,
+            row: {
+              ...current.row,
+              dueDate: result.dueDate,
+              returnDate: result.returnDate,
+              dueCharges: result.dueCharges,
+            },
+          }
           : current,
       );
       toast.success(`Book renewed. New due date: ${formatDisplayDate(result.dueDate)}.`);
@@ -659,7 +722,7 @@ const TransactionTabs = () => {
       <TabsContent value="return" forceMount className={cn(activeTab !== "return" && "hidden", "mt-5")}>
         <ReturnTab />
       </TabsContent>
-      <TabsContent value="renew" forceMount className={cn(activeTab !== "renew" && "hidden", "mt-5")}> 
+      <TabsContent value="renew" forceMount className={cn(activeTab !== "renew" && "hidden", "mt-5")}>
         <RenewTab />
       </TabsContent>
     </Tabs>
