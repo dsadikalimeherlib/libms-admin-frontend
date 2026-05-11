@@ -26,7 +26,7 @@ import {
   type Member,
   type TransactionLookup,
 } from "@/lib/mock-library-api";
-import { getMembers } from "@/services/members";
+import { getMembers, validateMembers } from "@/services/members";
 
 const issueFormSchema = z.object({
   memberQuery: z.string().trim(),
@@ -238,6 +238,22 @@ const IssueTab = () => {
     issueMutation.mutate();
   };
 
+  const handleSuggestionClick = (selectionValue: string) => {
+    form.setValue("memberQuery", selectionValue, { shouldValidate: false });
+    setMemberSuggestions([]);
+    form.clearErrors();
+    memberMutation.mutate(selectionValue);
+    validateMembers({ text: selectionValue }).then((validatedMember) => {
+      setMember(validatedMember);
+      form.clearErrors("memberQuery");
+      form.clearErrors("root");
+      toast.success(`Member verified: ${validatedMember.name}`);
+    }).catch((error: Error) => {
+      setMember(null);
+      form.setError("memberQuery", { message: error.message });
+    });
+  }
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -288,13 +304,7 @@ const IssueTab = () => {
                         <div
                           key={m.id}
                           className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
-                          onClick={() => {
-                            const selectionValue = m.value || m.id;
-                            form.setValue("memberQuery", selectionValue, { shouldValidate: false });
-                            setMemberSuggestions([]);
-                            form.clearErrors();
-                            memberMutation.mutate(selectionValue);
-                          }}
+                          onClick={() => handleSuggestionClick(m.value || m.id)}
                         >
                           <div className="font-medium">{m.value}</div>
                           <div className="text-sm text-muted-foreground">{m.description}</div>
