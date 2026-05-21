@@ -4,8 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { addDays } from "date-fns";
 import { Loader2, RefreshCw, ScanLine, Search, Undo2 } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
+
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -26,7 +26,8 @@ import {
   type Member,
   type TransactionLookup,
 } from "@/lib/mock-library-api";
-import { getMembers, validateMembers } from "@/services/members";
+import { getMembers, validateMembers, validateMemberTransaction } from "@/services/members";
+import { toast } from "react-toastify";
 
 const issueFormSchema = z.object({
   memberQuery: z.string().trim(),
@@ -73,22 +74,22 @@ const EmptyStateRow = ({ message, colSpan }: { message: string; colSpan: number 
 const MemberDetails = ({ member }: { member: Member }) => (
   <div className="section-frame grid gap-3 md:grid-cols-4">
     <div>
+
       <p className="section-heading">Member</p>
-      <p className="mt-1 text-base font-semibold text-foreground">{member.name}</p>
+      <p className="mt-1 text-base font-semibold text-foreground">{member.member_name}</p>
     </div>
     <div>
       <p className="section-heading">Member ID</p>
-      <p className="mt-1 text-sm text-foreground">{member.id}</p>
+      <p className="mt-1 text-sm text-foreground">{member.name}</p>
     </div>
     <div>
-      <p className="section-heading">Card</p>
-      <p className="mt-1 text-sm text-foreground">{member.cardNumber}</p>
+      <p className="section-heading">Mobile</p>
+      <p className="mt-1 text-sm text-foreground">{member.mobile}</p>
     </div>
     <div>
       <p className="section-heading">Plan</p>
       <div className="mt-1 flex items-center gap-2">
-        <span className="data-chip">{member.plan}</span>
-        <span className="data-chip">{member.status}</span>
+        <span className="data-chip">{member.membership_status}</span>
       </div>
     </div>
   </div>
@@ -133,6 +134,7 @@ const IssueTab = () => {
   const [dropdownActive, setDropdownActive] = useState(false);
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const skipNextSearchRef = useRef(false);
   const watchedQuery = form.watch("memberQuery");
 
   const loadMemberSuggestions = async (query: string) => {
@@ -145,6 +147,10 @@ const IssueTab = () => {
   };
 
   useEffect(() => {
+    if (skipNextSearchRef.current) {
+      skipNextSearchRef.current = false;
+      return;
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       void loadMemberSuggestions(watchedQuery);
@@ -158,13 +164,13 @@ const IssueTab = () => {
   const memberMutation = useMutation({
     mutationFn: validateMember,
     onSuccess: (validatedMember) => {
-      setMember(validatedMember);
+      // setMember(validatedMember);
       form.clearErrors("memberQuery");
       form.clearErrors("root");
       toast.success(`Member verified: ${validatedMember.name}`);
     },
     onError: (error: Error) => {
-      setMember(null);
+
       form.setError("memberQuery", { message: error.message });
     },
   });
@@ -204,12 +210,7 @@ const IssueTab = () => {
 
   const submitDisabled = !member || queuedBooks.length === 0 || issueMutation.isPending;
 
-  const onValidateMember = async () => {
-    form.clearErrors("root");
-    const valid = await form.trigger("memberQuery");
-    if (!valid) return;
-    memberMutation.mutate(form.getValues("memberQuery"));
-  };
+
 
   const onAddBook = async () => {
     form.clearErrors("root");
@@ -239,20 +240,32 @@ const IssueTab = () => {
   };
 
   const handleSuggestionClick = (selectionValue: string) => {
+    skipNextSearchRef.current = true;
     form.setValue("memberQuery", selectionValue, { shouldValidate: false });
     setMemberSuggestions([]);
-    form.clearErrors();
-    memberMutation.mutate(selectionValue);
+    setDropdownActive(false);
     validateMembers({ text: selectionValue }).then((validatedMember) => {
       setMember(validatedMember);
-      form.clearErrors("memberQuery");
-      form.clearErrors("root");
-      toast.success(`Member verified: ${validatedMember.name}`);
+
     }).catch((error: Error) => {
+      console.log('22222', error);
+
       setMember(null);
-      form.setError("memberQuery", { message: error.message });
+    });
+
+    validateMemberTransaction({ text: selectionValue }).then((validatedMember) => {
+
+      if (validatedMember.valid) {
+        toast.success(`${validatedMember.message}`);
+      }
+      else {
+        toast.error(`${validatedMember.message}`);
+      }
+    }).catch((error: Error) => {
+      toast.error(`${error.message}`);
     });
   }
+  console.log('member1111', member);
 
   return (
     <Form {...form}>
@@ -315,10 +328,7 @@ const IssueTab = () => {
                 </FormItem>
               )}
             />
-            <Button type="button" onClick={onValidateMember} disabled={memberMutation.isPending} className="md:mt-5.75">
-              {memberMutation.isPending ? <Loader2 className="animate-spin" /> : <Search />}
-              Validate member
-            </Button>
+
           </div>
           {member ? <MemberDetails member={member} /> : null}
         </section>
