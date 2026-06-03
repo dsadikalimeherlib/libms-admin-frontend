@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { addDays } from "date-fns";
 import { Loader2, RefreshCw, ScanLine, Search, Undo2 } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 
 
@@ -12,13 +12,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
+import {
+  cn,
+} from "@/lib/utils";
 import {
   completeReturn,
   formatDisplayDate,
-  issueBooks,
   lookupActiveTransaction,
-  lookupBookByBarcode,
   renewBook,
   validateMember,
   type Book,
@@ -27,6 +27,7 @@ import {
   type TransactionLookup,
 } from "@/lib/mock-library-api";
 import { getMembers, validateMembers, validateMemberTransaction } from "@/services/members";
+import { getBookTransactionDetails, submitBookIssue } from "@/services/books";
 import { toast } from "react-toastify";
 
 const issueFormSchema = z.object({
@@ -50,7 +51,7 @@ const buildIssuePreview = (book: Book): IssuePreviewRow => {
   return {
     ...book,
     transactionDate: transactionDate.toISOString(),
-    dueDate: addDays(transactionDate, 14).toISOString(),
+    dueDate: addDays(transactionDate, 30).toISOString(),
   };
 };
 
@@ -72,7 +73,7 @@ const EmptyStateRow = ({ message, colSpan }: { message: string; colSpan: number 
 );
 
 const MemberDetails = ({ member }: { member: Member }) => (
-  <div className="section-frame grid gap-3 md:grid-cols-4">
+  <div className="section-frame grid gap-3 md:grid-cols-2">
     <div>
 
       <p className="section-heading">Member</p>
@@ -100,16 +101,25 @@ const SubmitBar = ({
   disabled,
   loading,
   label,
+  onClick,
 }: {
   error?: string;
   disabled: boolean;
   loading: boolean;
   label: string;
+  onClick?: () => void;
 }) => (
   <div className="sticky-submit-bar">
     <RootError message={error} />
     <div className="flex justify-end md:ml-auto">
-      <Button type="submit" variant="panel" size="lg" disabled={disabled} className="min-w-40">
+      <Button
+        type={onClick ? "button" : "submit"}
+        onClick={onClick}
+        variant="panel"
+        size="lg"
+        disabled={disabled}
+        className="min-w-40"
+      >
         {loading ? <Loader2 className="animate-spin" /> : null}
         {label}
       </Button>
@@ -117,307 +127,72 @@ const SubmitBar = ({
   </div>
 );
 
-const IssueTab = () => {
-  const queryClient = useQueryClient();
-  const form = useForm<IssueFormValues>({
-    resolver: zodResolver(issueFormSchema),
-    defaultValues: {
-      memberQuery: "",
-      barcode: "",
-    },
-    mode: "onChange",
-  });
-  const [member, setMember] = useState<Member | null>(null);
-  const [queuedBooks, setQueuedBooks] = useState<IssuePreviewRow[]>([]);
-  const [memberSuggestions, setMemberSuggestions] = useState<MemberSuggestion[]>([]);
-  const [memberInputFocused, setMemberInputFocused] = useState(false);
-  const [dropdownActive, setDropdownActive] = useState(false);
+interface IssueTabProps {
+  form: UseFormReturn<IssueFormValues>;
+  queuedBooks: IssuePreviewRow[];
+  issueMutation: any;
+  submitDisabled: boolean;
+  onSubmit: () => void;
+}
 
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-  const skipNextSearchRef = useRef(false);
-  const watchedQuery = form.watch("memberQuery");
-
-  const loadMemberSuggestions = async (query: string) => {
-    try {
-      const result = (await getMembers({ text: query })) as MemberSuggestion[];
-      setMemberSuggestions(result ?? []);
-    } catch (error) {
-      setMemberSuggestions([]);
-    }
-  };
-
-  useEffect(() => {
-    if (skipNextSearchRef.current) {
-      skipNextSearchRef.current = false;
-      return;
-    }
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      void loadMemberSuggestions(watchedQuery);
-    }, 500);
-
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [watchedQuery]);
-
-  const memberMutation = useMutation({
-    mutationFn: validateMember,
-    onSuccess: (validatedMember) => {
-      // setMember(validatedMember);
-      form.clearErrors("memberQuery");
-      form.clearErrors("root");
-      toast.success(`Member verified: ${validatedMember.name}`);
-    },
-    onError: (error: Error) => {
-
-      form.setError("memberQuery", { message: error.message });
-    },
-  });
-
-  const bookMutation = useMutation({
-    mutationFn: lookupBookByBarcode,
-    onSuccess: (book) => {
-      if (queuedBooks.some((item) => item.barcode === book.barcode)) {
-        form.setError("barcode", { message: "This barcode is already queued." });
-        return;
-      }
-
-      setQueuedBooks((current) => [...current, buildIssuePreview(book)]);
-      form.setValue("barcode", "", { shouldValidate: false });
-      form.clearErrors("barcode");
-      form.clearErrors("root");
-      toast.success(`${book.title} added to the issue queue.`);
-    },
-    onError: (error: Error) => {
-      form.setError("barcode", { message: error.message });
-    },
-  });
-
-  const issueMutation = useMutation({
-    mutationFn: () => issueBooks({ memberId: member!.id, barcodes: queuedBooks.map((item) => item.barcode) }),
-    onSuccess: (result) => {
-      setQueuedBooks([]);
-      form.setValue("barcode", "", { shouldValidate: false });
-      form.clearErrors();
-      toast.success(`${result.rows.length} item(s) issued to ${result.member.name}.`);
-      queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
-    },
-    onError: (error: Error) => {
-      form.setError("root", { message: error.message });
-    },
-  });
-
-  const submitDisabled = !member || queuedBooks.length === 0 || issueMutation.isPending;
-
-
-
-  const onAddBook = async () => {
-    form.clearErrors("root");
-    if (!member) {
-      form.setError("root", { message: "Validate a member before adding books." });
-      return;
-    }
-
-    const valid = await form.trigger("barcode");
-    if (!valid) return;
-
-    bookMutation.mutate(form.getValues("barcode"));
-  };
-
-  const onSubmit = () => {
-    if (!member) {
-      form.setError("root", { message: "Member is required before issuing books." });
-      return;
-    }
-
-    if (queuedBooks.length === 0) {
-      form.setError("root", { message: "Add at least one book before submitting." });
-      return;
-    }
-
-    issueMutation.mutate();
-  };
-
-  const handleSuggestionClick = (selectionValue: string) => {
-    skipNextSearchRef.current = true;
-    form.setValue("memberQuery", selectionValue, { shouldValidate: false });
-    setMemberSuggestions([]);
-    setDropdownActive(false);
-    validateMembers({ text: selectionValue }).then((validatedMember) => {
-      setMember(validatedMember);
-
-    }).catch((error: Error) => {
-      console.log('22222', error);
-
-      setMember(null);
-    });
-
-    validateMemberTransaction({ text: selectionValue }).then((validatedMember) => {
-
-      if (validatedMember.valid) {
-        toast.success(`${validatedMember.message}`);
-      }
-      else {
-        toast.error(`${validatedMember.message}`);
-      }
-    }).catch((error: Error) => {
-      toast.error(`${error.message}`);
-    });
-  }
-  console.log('member1111', member);
-
+const IssueTab = ({
+  form,
+  queuedBooks,
+  issueMutation,
+  submitDisabled,
+  onSubmit,
+}: IssueTabProps) => {
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <section className="section-frame space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="section-heading">Step 1 · Member validation</p>
-              <p className="mt-1 text-sm text-muted-foreground">Validate by member ID, mobile, or card number.</p>
-            </div>
-            {member ? (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  setMember(null);
-                  setQueuedBooks([]);
-                  form.clearErrors();
-                }}
-              >
-                Reset member
-              </Button>
-            ) : null}
-          </div>
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
-            <FormField
-              control={form.control}
-              name="memberQuery"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Member search</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="MBR-1042 / 9876543210 / CARD-88421"
-                      autoComplete="off"
-                      onFocus={() => setMemberInputFocused(true)}
-                      onBlur={() => setMemberInputFocused(false)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                  {memberSuggestions?.length > 0 && (memberInputFocused || dropdownActive) && (
-                    <div
-                      className="mt-2 max-h-40 overflow-y-auto border rounded-md bg-background"
-                      onMouseEnter={() => setDropdownActive(true)}
-                      onMouseLeave={() => setDropdownActive(false)}
-                    >
-                      {memberSuggestions.map((m) => (
-                        <div
-                          key={m.id}
-                          className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
-                          onClick={() => handleSuggestionClick(m.value || m.id)}
-                        >
-                          <div className="font-medium">{m.value}</div>
-                          <div className="text-sm text-muted-foreground">{m.description}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </FormItem>
+    <div className="space-y-6">
+      <section className="section-frame space-y-4">
+        <div>
+          <p className="section-heading">Step 3 · Transaction data</p>
+          <p className="mt-1 text-sm text-muted-foreground">Review queued books before issuing.</p>
+        </div>
+        <div className="table-shell">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>No.</TableHead>
+                <TableHead>Access No</TableHead>
+                <TableHead>Book Title</TableHead>
+                <TableHead>Author</TableHead>
+                <TableHead>Language</TableHead>
+                <TableHead>Volume</TableHead>
+                <TableHead>Transaction Date</TableHead>
+                <TableHead>Due Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {queuedBooks.length ? (
+                queuedBooks.map((book, index) => (
+                  <TableRow key={book.barcode}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{book.accessNo}</TableCell>
+                    <TableCell className="font-medium text-foreground">{book.title}</TableCell>
+                    <TableCell>{book.author}</TableCell>
+                    <TableCell>{book.language}</TableCell>
+                    <TableCell>{book.volume}</TableCell>
+                    <TableCell>{formatDisplayDate(book.transactionDate)}</TableCell>
+                    <TableCell>{formatDisplayDate(book.dueDate)}</TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <EmptyStateRow message="No books added yet." colSpan={8} />
               )}
-            />
+            </TableBody>
+          </Table>
+        </div>
+      </section>
 
-          </div>
-          {member ? <MemberDetails member={member} /> : null}
-        </section>
-
-        <section className="section-frame space-y-4">
-          <div>
-            <p className="section-heading">Step 2 · Barcode input</p>
-            <p className="mt-1 text-sm text-muted-foreground">Manual entry or scanner-ready wedge input supported.</p>
-          </div>
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
-            <FormField
-              control={form.control}
-              name="barcode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Book barcode</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Scan or type barcode"
-                      autoComplete="off"
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          void onAddBook();
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="button" variant="secondary" onClick={onAddBook} disabled={bookMutation.isPending} className="md:mt-8">
-              {bookMutation.isPending ? <Loader2 className="animate-spin" /> : <ScanLine />}
-              Add book
-            </Button>
-          </div>
-        </section>
-
-        <section className="section-frame space-y-4">
-          <div>
-            <p className="section-heading">Step 3 · Transaction data</p>
-            <p className="mt-1 text-sm text-muted-foreground">Review queued books before issuing.</p>
-          </div>
-          <div className="table-shell">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>No.</TableHead>
-                  <TableHead>Access No</TableHead>
-                  <TableHead>Book Title</TableHead>
-                  <TableHead>Author</TableHead>
-                  <TableHead>Language</TableHead>
-                  <TableHead>Volume</TableHead>
-                  <TableHead>Transaction Date</TableHead>
-                  <TableHead>Due Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {queuedBooks.length ? (
-                  queuedBooks.map((book, index) => (
-                    <TableRow key={book.barcode}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>{book.accessNo}</TableCell>
-                      <TableCell className="font-medium text-foreground">{book.title}</TableCell>
-                      <TableCell>{book.author}</TableCell>
-                      <TableCell>{book.language}</TableCell>
-                      <TableCell>{book.volume}</TableCell>
-                      <TableCell>{formatDisplayDate(book.transactionDate)}</TableCell>
-                      <TableCell>{formatDisplayDate(book.dueDate)}</TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <EmptyStateRow message="No books added yet." colSpan={8} />
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </section>
-
-        <SubmitBar
-          error={form.formState.errors.root?.message}
-          disabled={submitDisabled}
-          loading={issueMutation.isPending}
-          label="Submit Issue"
-        />
-      </form>
-    </Form>
+      <SubmitBar
+        error={form.formState.errors.root?.message}
+        disabled={submitDisabled}
+        loading={issueMutation.isPending}
+        label="Submit Issue"
+        onClick={onSubmit}
+      />
+    </div>
   );
 };
 
@@ -722,30 +497,286 @@ const tabs = [
 const TransactionTabs = () => {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]["value"]>("issue");
 
-  return (
-    <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as (typeof tabs)[number]["value"])}>
-      <TabsList className="grid h-auto w-full grid-cols-3 rounded-lg border border-border/70 bg-muted/70 p-1">
-        {tabs.map((tab) => (
-          <TabsTrigger
-            key={tab.value}
-            value={tab.value}
-            className="rounded-md px-4 py-2.5 text-sm font-semibold data-[state=active]:bg-card data-[state=active]:shadow-panel"
-          >
-            {tab.label}
-          </TabsTrigger>
-        ))}
-      </TabsList>
+  const queryClient = useQueryClient();
+  const form = useForm<IssueFormValues>({
+    resolver: zodResolver(issueFormSchema),
+    defaultValues: {
+      memberQuery: "",
+      barcode: "",
+    },
+    mode: "onChange",
+  });
+  const [member, setMember] = useState<Member | null>(null);
+  const [queuedBooks, setQueuedBooks] = useState<IssuePreviewRow[]>([]);
+  const [memberSuggestions, setMemberSuggestions] = useState<MemberSuggestion[]>([]);
+  const [memberInputFocused, setMemberInputFocused] = useState(false);
+  const [dropdownActive, setDropdownActive] = useState(false);
 
-      <TabsContent value="issue" forceMount className={cn(activeTab !== "issue" && "hidden", "mt-5")}>
-        <IssueTab />
-      </TabsContent>
-      <TabsContent value="return" forceMount className={cn(activeTab !== "return" && "hidden", "mt-5")}>
-        <ReturnTab />
-      </TabsContent>
-      <TabsContent value="renew" forceMount className={cn(activeTab !== "renew" && "hidden", "mt-5")}>
-        <RenewTab />
-      </TabsContent>
-    </Tabs>
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const skipNextSearchRef = useRef(false);
+  const watchedQuery = form.watch("memberQuery");
+
+  const loadMemberSuggestions = async (query: string) => {
+    try {
+      const result = (await getMembers({ text: query })) as MemberSuggestion[];
+      setMemberSuggestions(result ?? []);
+    } catch (error) {
+      setMemberSuggestions([]);
+    }
+  };
+
+  useEffect(() => {
+    if (skipNextSearchRef.current) {
+      skipNextSearchRef.current = false;
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      void loadMemberSuggestions(watchedQuery);
+    }, 500);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [watchedQuery]);
+
+  const memberMutation = useMutation({
+    mutationFn: validateMember,
+    onSuccess: (validatedMember) => {
+      form.clearErrors("memberQuery");
+      form.clearErrors("root");
+      toast.success(`Member verified: ${validatedMember.name}`);
+    },
+    onError: (error: Error) => {
+      form.setError("memberQuery", { message: error.message });
+    },
+  });
+
+  const bookMutation = useMutation({
+    mutationFn: (barcode: string) =>
+      getBookTransactionDetails({
+        barcode,
+        member: member?.name || "",
+        transaction_type: activeTab === "issue" ? "Issue" : activeTab === "return" ? "Return" : "Renew",
+      }),
+    onSuccess: (book) => {
+      if (queuedBooks.some((item) => item.barcode === book.barcode)) {
+        form.setError("barcode", { message: "This barcode is already queued." });
+        return;
+      }
+
+      setQueuedBooks((current) => [...current, buildIssuePreview(book)]);
+      form.setValue("barcode", "", { shouldValidate: false });
+      form.clearErrors("barcode");
+      form.clearErrors("root");
+      toast.success(`${book.title} added to the issue queue.`);
+    },
+    onError: (error: Error) => {
+      form.setError("barcode", { message: error.message });
+    },
+  });
+
+  const issueMutation = useMutation({
+    mutationFn: () => submitBookIssue({ member: member!, queuedBooks }),
+    onSuccess: (result) => {
+      setQueuedBooks([]);
+      setMember(null);
+      form.setValue("memberQuery", "", { shouldValidate: false });
+      form.setValue("barcode", "", { shouldValidate: false });
+      form.clearErrors();
+      toast.success(`${result.rows.length} item(s) issued to ${result.member.name}.`);
+      queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
+    },
+    onError: (error: Error) => {
+      form.setError("root", { message: error.message });
+    },
+  });
+
+  const submitDisabled = !member || queuedBooks.length === 0 || issueMutation.isPending;
+
+  const onAddBook = async () => {
+    form.clearErrors("root");
+    if (!member) {
+      form.setError("root", { message: "Validate a member before adding books." });
+      return;
+    }
+
+    const valid = await form.trigger("barcode");
+    if (!valid) return;
+
+    bookMutation.mutate(form.getValues("barcode"));
+  };
+
+  const onSubmit = () => {
+    if (!member) {
+      form.setError("root", { message: "Member is required before issuing books." });
+      return;
+    }
+
+    if (queuedBooks.length === 0) {
+      form.setError("root", { message: "Add at least one book before submitting." });
+      return;
+    }
+
+    issueMutation.mutate();
+  };
+
+  const handleSuggestionClick = (selectionValue: string) => {
+    skipNextSearchRef.current = true;
+    form.setValue("memberQuery", selectionValue, { shouldValidate: false });
+    setMemberSuggestions([]);
+    setDropdownActive(false);
+    validateMembers({ text: selectionValue }).then((validatedMember) => {
+      setMember(validatedMember);
+    }).catch((error: Error) => {
+      setMember(null);
+    });
+
+    validateMemberTransaction({ text: selectionValue }).then((validatedMember) => {
+      if (validatedMember.valid) {
+        toast.success(`${validatedMember.message}`);
+      } else {
+        toast.error(`${validatedMember.message}`);
+      }
+    }).catch((error: Error) => {
+      toast.error(`${error.message}`);
+    });
+  };
+
+  return (
+    <Form {...form}>
+      <div className="space-y-6">
+        <div className="flex gap-6">
+          <section className="space-y-4 w-full">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="section-heading">Step 1 · Member validation</p>
+                <p className="mt-1 text-sm text-muted-foreground">Validate by member ID, mobile, or card number.</p>
+              </div>
+              {member ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setMember(null);
+                    setQueuedBooks([]);
+                    form.clearErrors();
+                  }}
+                >
+                  Reset member
+                </Button>
+              ) : null}
+            </div>
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+              <FormField
+                control={form.control}
+                name="memberQuery"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Member search</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="MBR-1042 / 9876543210 / CARD-88421"
+                        autoComplete="off"
+                        onFocus={() => setMemberInputFocused(true)}
+                        onBlur={() => setMemberInputFocused(false)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    {memberSuggestions?.length > 0 && (memberInputFocused || dropdownActive) && (
+                      <div
+                        className="mt-2 max-h-40 overflow-y-auto border rounded-md bg-background"
+                        onMouseEnter={() => setDropdownActive(true)}
+                        onMouseLeave={() => setDropdownActive(false)}
+                      >
+                        {memberSuggestions.map((m, idx) => (
+                          <div
+                            key={idx}
+                            className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                            onClick={() => handleSuggestionClick(m.value || m.id)}
+                          >
+                            <div className="font-medium">{m.value}</div>
+                            <div className="text-sm text-muted-foreground">{m.description}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </FormItem>
+                )}
+              />
+            </div>
+            {member ? <MemberDetails member={member} /> : null}
+          </section>
+
+          <section className="space-y-4 w-full">
+            <div>
+              <p className="section-heading">Step 2 · Barcode input</p>
+              <p className="mt-1 text-sm text-muted-foreground">Manual entry or scanner-ready wedge input supported.</p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+              <FormField
+                control={form.control}
+                name="barcode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Book barcode</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Scan or type barcode"
+                        autoComplete="off"
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            void onAddBook();
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="button" variant="secondary" onClick={onAddBook} disabled={bookMutation.isPending} className="md:mt-6">
+                {bookMutation.isPending ? <Loader2 className="animate-spin" /> : <ScanLine />}
+                Add book
+              </Button>
+            </div>
+          </section>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as (typeof tabs)[number]["value"])}>
+          <TabsList className="grid h-auto w-full grid-cols-3 rounded-lg border border-border/70 bg-muted/70 p-1">
+            {tabs.map((tab) => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="rounded-md px-4 py-2.5 text-sm font-semibold data-[state=active]:bg-card data-[state=active]:shadow-panel"
+              >
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <TabsContent value="issue" forceMount className={cn(activeTab !== "issue" && "hidden", "mt-5")}>
+            <IssueTab
+              form={form}
+              queuedBooks={queuedBooks}
+              issueMutation={issueMutation}
+              submitDisabled={submitDisabled}
+              onSubmit={onSubmit}
+            />
+          </TabsContent>
+          <TabsContent value="return" forceMount className={cn(activeTab !== "return" && "hidden", "mt-5")}>
+            <ReturnTab />
+          </TabsContent>
+          <TabsContent value="renew" forceMount className={cn(activeTab !== "renew" && "hidden", "mt-5")}>
+            <RenewTab />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </Form>
   );
 };
 

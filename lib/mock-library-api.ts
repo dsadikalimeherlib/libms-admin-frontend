@@ -10,10 +10,12 @@ export type AuthUser = {
 export type Member = {
   id: string;
   name: string;
+  member_name?: string;
   cardNumber: string;
   mobile: string;
   plan: string;
   status: "Active" | "Expired";
+  membership_status?: string;
 };
 
 export type Book = {
@@ -81,27 +83,33 @@ const logins: Array<{ identifier: string[]; password: string; user: AuthUser }> 
 const members: Member[] = [
   {
     id: "MBR-1042",
-    name: "Priya Sharma",
+    name: "MBR-1042",
+    member_name: "Priya Sharma",
     cardNumber: "CARD-88421",
     mobile: "9876543210",
     plan: "Annual Premium",
     status: "Active",
+    membership_status: "Active",
   },
   {
     id: "MBR-2088",
-    name: "Daniel Brooks",
+    name: "MBR-2088",
+    member_name: "Daniel Brooks",
     cardNumber: "CARD-55102",
     mobile: "9988776655",
     plan: "Quarterly",
     status: "Active",
+    membership_status: "Active",
   },
   {
     id: "MBR-3191",
-    name: "Leila Nasser",
+    name: "MBR-3191",
+    member_name: "Leila Nasser",
     cardNumber: "CARD-77218",
     mobile: "9123409876",
     plan: "Student",
     status: "Active",
+    membership_status: "Active",
   },
 ];
 

@@ -1,6 +1,6 @@
 import Sidebar from "./sidebar";
 
-const MainLayout: React.FC = ({ children }) => {
+const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return (
         <div className="min-h-screen flex flex-col">
 
