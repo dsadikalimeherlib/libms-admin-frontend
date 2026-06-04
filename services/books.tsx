@@ -1,13 +1,13 @@
 import { Book } from "../lib/mock-library-api";
 
 export const getBookTransactionDetails = async ({
-  barcode,
-  member,
-  transaction_type = "Issue",
+    barcode,
+    member,
+    transaction_type = "Issue",
 }: {
-  barcode: string;
-  member: string;
-  transaction_type?: string;
+    barcode: string;
+    member: string;
+    transaction_type?: string;
 }): Promise<Book> => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -15,7 +15,7 @@ export const getBookTransactionDetails = async ({
     }
 
     const { access_token } = JSON.parse(token);
-    
+
     const res = await fetch("/api/book-transaction", {
         method: "POST",
         headers: {
@@ -46,11 +46,11 @@ export const getBookTransactionDetails = async ({
 }
 
 export const submitBookIssue = async ({
-  member,
-  queuedBooks,
+    member,
+    queuedBooks,
 }: {
-  member: any;
-  queuedBooks: any[];
+    member: any;
+    queuedBooks: any[];
 }) => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -128,5 +128,33 @@ export const submitBookIssue = async ({
             name: returnedDoc.member_name || member.member_name || member.name
         },
         rows: returnedDoc.book_transaction_detail || queuedBooks
+    };
+};
+
+export const getAssetDetail = async (name: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("No token found");
+    const { access_token } = JSON.parse(token);
+
+    const res = await fetch(`/api/asset-detail?name=${name}`, {
+        headers: {
+            Authorization: `Bearer ${access_token}`,
+        },
+    });
+
+    if (!res.ok) throw new Error("Failed to fetch asset");
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+    if (!data.docs?.[0]) throw new Error("Asset not found");
+
+    const asset = data.docs[0];
+    return {
+        barcode: asset.name,
+        accessNo: asset.access_no,
+        title: asset.title,
+        author: asset.authors?.join(", ") || "",
+        language: asset.languages?.join(", ") || "",
+        volume: asset.volume || "",
     };
 };

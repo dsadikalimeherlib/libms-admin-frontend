@@ -61,6 +61,18 @@ type MemberSuggestion = {
   description: string;
 };
 
+type AssetDoc = {
+  name: string;
+  asset_name: string;
+  item_name: string;
+  item_code: string;
+  asset_category: string;
+  location: string;
+  status: string;
+  donated_book: string;
+  purchase_date: string;
+};
+
 const RootError = ({ message }: { message?: string }) =>
   message ? <div className="inline-feedback">{message}</div> : null;
 
@@ -93,6 +105,69 @@ const MemberDetails = ({ member }: { member: Member }) => (
         <span className="data-chip">{member.membership_status}</span>
       </div>
     </div>
+  </div>
+);
+
+const BookDetails = ({ book, asset }: { book: Book; asset?: AssetDoc | null }) => (
+  <div className="section-frame grid gap-3 md:grid-cols-2">
+    {
+      console.log('book111', book, asset)
+
+    }
+    <div className="md:col-span-2">
+      <p className="section-heading">Book Title</p>
+      <p className="mt-1 text-base font-semibold text-foreground">{book.title}</p>
+    </div>
+    <div>
+      <p className="section-heading">Asset ID</p>
+      <p className="mt-1 text-sm text-foreground">{book.barcode}</p>
+    </div>
+    {asset?.item_code ? (
+      <div>
+        <p className="section-heading">Item Code</p>
+        <p className="mt-1 text-sm text-foreground">{asset.item_code}</p>
+      </div>
+    ) : null}
+    {asset?.asset_category ? (
+      <div>
+        <p className="section-heading">Category</p>
+        <p className="mt-1 text-sm text-foreground">{asset.asset_category}</p>
+      </div>
+    ) : null}
+    <div>
+      <p className="section-heading">Location</p>
+      <p className="mt-1 text-sm text-foreground">{book.location}</p>
+    </div>
+    <div>
+      <p className="section-heading">Status</p>
+      <div className="mt-1">
+        <span className="data-chip">{book.status}</span>
+      </div>
+    </div>
+    {asset?.donated_book ? (
+      <div>
+        <p className="section-heading">Donated</p>
+        <p className="mt-1 text-sm text-foreground">{asset.donated_book}</p>
+      </div>
+    ) : null}
+    {book.author ? (
+      <div>
+        <p className="section-heading">Author</p>
+        <p className="mt-1 text-sm text-foreground">{book.author}</p>
+      </div>
+    ) : null}
+    {book.language ? (
+      <div>
+        <p className="section-heading">Language</p>
+        <p className="mt-1 text-sm text-foreground">{book.language}</p>
+      </div>
+    ) : null}
+    {book.volume ? (
+      <div>
+        <p className="section-heading">Volume</p>
+        <p className="mt-1 text-sm text-foreground">{book.volume}</p>
+      </div>
+    ) : null}
   </div>
 );
 
@@ -254,7 +329,7 @@ const ReturnTab = () => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <section className="section-frame space-y-4">
+        {/* <section className="section-frame space-y-4">
           <div>
             <p className="section-heading">Return flow</p>
             <p className="mt-1 text-sm text-muted-foreground">Enter the barcode to load the borrower and charge summary.</p>
@@ -289,7 +364,7 @@ const ReturnTab = () => {
             </Button>
           </div>
           {transaction ? <MemberDetails member={transaction.member} /> : null}
-        </section>
+        </section> */}
 
         <section className="section-frame space-y-4">
           <p className="section-heading">Return transaction</p>
@@ -495,7 +570,7 @@ const tabs = [
 ] as const;
 
 const TransactionTabs = () => {
-  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]["value"]>("issue");
+  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]["value"]>("");
 
   const queryClient = useQueryClient();
   const form = useForm<IssueFormValues>({
@@ -508,6 +583,8 @@ const TransactionTabs = () => {
   });
   const [member, setMember] = useState<Member | null>(null);
   const [queuedBooks, setQueuedBooks] = useState<IssuePreviewRow[]>([]);
+  const [scannedBook, setScannedBook] = useState<Book | null>(null);
+  const [assetDoc, setAssetDoc] = useState<AssetDoc | null>(null);
   const [memberSuggestions, setMemberSuggestions] = useState<MemberSuggestion[]>([]);
   const [memberInputFocused, setMemberInputFocused] = useState(false);
   const [dropdownActive, setDropdownActive] = useState(false);
@@ -565,6 +642,7 @@ const TransactionTabs = () => {
         return;
       }
 
+      setScannedBook(book);
       setQueuedBooks((current) => [...current, buildIssuePreview(book)]);
       form.setValue("barcode", "", { shouldValidate: false });
       form.clearErrors("barcode");
@@ -643,6 +721,44 @@ const TransactionTabs = () => {
     });
   };
 
+  const getAssetDetail = async (name: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("No token found");
+    const { access_token } = JSON.parse(token);
+
+    const res = await fetch(`/api/asset-detail?name=${encodeURIComponent(name)}`, {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    });
+
+    if (!res.ok) throw new Error("Failed to fetch asset");
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+    if (!data.docs?.[0]) throw new Error("Asset not found");
+
+    const asset: AssetDoc = data.docs[0];
+    console.log('data111', data);
+
+    const mappedBook: Book = {
+      barcode: asset.name,
+      accessNo: asset.name,
+      title: asset.asset_name || asset.item_name || asset.name,
+      author: "",
+      language: "",
+      volume: "",
+      location: asset.location || "",
+      status: asset.status || "",
+    };
+
+    setAssetDoc(asset);
+    setScannedBook(mappedBook);
+    form.setValue("barcode", "", { shouldValidate: false });
+    form.clearErrors("barcode");
+    setQueuedBooks((current) => [...current, buildIssuePreview(mappedBook)]);
+  };
+
   return (
     <Form {...form}>
       <div className="space-y-6">
@@ -660,6 +776,8 @@ const TransactionTabs = () => {
                   onClick={() => {
                     setMember(null);
                     setQueuedBooks([]);
+                    setScannedBook(null);
+                    setAssetDoc(null);
                     form.clearErrors();
                   }}
                 >
@@ -729,7 +847,9 @@ const TransactionTabs = () => {
                         onKeyDown={(event) => {
                           if (event.key === "Enter") {
                             event.preventDefault();
-                            void onAddBook();
+                            // void onAddBook();
+                            getAssetDetail(field.value);
+
                           }
                         }}
                       />
@@ -743,6 +863,11 @@ const TransactionTabs = () => {
                 Add book
               </Button>
             </div>
+            {
+              console.log('scannedBook111', scannedBook)
+
+            }
+            {scannedBook ? <BookDetails book={scannedBook} /> : null}
           </section>
         </div>
 
