@@ -27,7 +27,7 @@ import {
   type TransactionLookup,
 } from "@/lib/mock-library-api";
 import { getMembers, validateMembers, validateMemberTransaction } from "@/services/members";
-import { getBookTransactionDetails, submitBookIssue } from "@/services/books";
+import { getAssetDetailFrappe, getBookTransactionDetails, submitBookIssue } from "@/services/books";
 import { toast } from "react-toastify";
 
 const issueFormSchema = z.object({
@@ -721,25 +721,16 @@ const TransactionTabs = () => {
     });
   };
 
-  const getAssetDetail = async (name: string) => {
+  const getAssetDetailFun = async (name: string) => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error("No token found");
     const { access_token } = JSON.parse(token);
 
-    const res = await fetch(`/api/asset-detail?name=${encodeURIComponent(name)}`, {
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-      },
-    });
+    const data = await getAssetDetailFrappe(encodeURIComponent(name));
 
-    if (!res.ok) throw new Error("Failed to fetch asset");
-    const data = await res.json();
-
-    if (data.error) throw new Error(data.error);
-    if (!data.docs?.[0]) throw new Error("Asset not found");
 
     const asset: AssetDoc = data.docs[0];
-    console.log('data111', data);
+
 
     const mappedBook: Book = {
       barcode: asset.name,
@@ -848,7 +839,7 @@ const TransactionTabs = () => {
                           if (event.key === "Enter") {
                             event.preventDefault();
                             // void onAddBook();
-                            getAssetDetail(field.value);
+                            getAssetDetailFun(field.value);
 
                           }
                         }}
@@ -863,10 +854,7 @@ const TransactionTabs = () => {
                 Add book
               </Button>
             </div>
-            {
-              console.log('scannedBook111', scannedBook)
 
-            }
             {scannedBook ? <BookDetails book={scannedBook} /> : null}
           </section>
         </div>

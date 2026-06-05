@@ -106,14 +106,24 @@ export const submitBookIssue = async ({
         }))
     };
 
-    const res = await fetch("/api/book-issue", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${access_token}`,
-        },
-        body: JSON.stringify({ doc, action: "Submit" }),
+    const params = new URLSearchParams({
+        doc: JSON.stringify(doc),
+        action: "Submit",
     });
+
+    const res = await fetch(
+        "https://libms-dev.aakvaerp.com/api/method/frappe.desk.form.save.savedocs",
+        {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+                Accept: "application/json",
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: params.toString(),
+        }
+    );
 
     const data = await res.json();
 
@@ -131,30 +141,39 @@ export const submitBookIssue = async ({
     };
 };
 
-export const getAssetDetail = async (name: string) => {
+
+
+export const getAssetDetailFrappe = async (name: string) => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error("No token found");
     const { access_token } = JSON.parse(token);
 
-    const res = await fetch(`/api/asset-detail?name=${name}`, {
-        headers: {
-            Authorization: `Bearer ${access_token}`,
-        },
+    const authHeader = `Bearer ${access_token}`;
+    const doctype = "Asset";
+
+    const params = new URLSearchParams({
+        doctype,
+        name,
+        _: Date.now().toString(),
     });
 
-    if (!res.ok) throw new Error("Failed to fetch asset");
+    const res = await fetch(
+        `https://libms-dev.aakvaerp.com/api/method/frappe.desk.form.load.getdoc?${params.toString()}`,
+        {
+            method: "GET",
+            headers: {
+                Authorization: authHeader,
+                Accept: "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+                "X-Frappe-Doctype": doctype,
+                "X-Frappe-CMD": "",
+            },
+        }
+    );
+
     const data = await res.json();
 
-    if (data.error) throw new Error(data.error);
-    if (!data.docs?.[0]) throw new Error("Asset not found");
+    if (!res.ok) throw new Error(data.error || "Failed to fetch asset");
 
-    const asset = data.docs[0];
-    return {
-        barcode: asset.name,
-        accessNo: asset.access_no,
-        title: asset.title,
-        author: asset.authors?.join(", ") || "",
-        language: asset.languages?.join(", ") || "",
-        volume: asset.volume || "",
-    };
+    return data;
 };

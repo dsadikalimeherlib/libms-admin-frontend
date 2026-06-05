@@ -4,6 +4,7 @@ import { useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { getFrappeToken } from '@/services/register';
 
 function CallbackContent() {
     const searchParams = useSearchParams();
@@ -11,15 +12,10 @@ function CallbackContent() {
 
     useEffect(() => {
         const code = searchParams.get('code');
-
-        if (code) {
-            fetch(`/api/frappe-token?code=${code}`)
-                .then((res) => res.json())
-                .then((data) => {
-                    localStorage.setItem('token', JSON.stringify(data));
-                    router.replace('/dashboard');
-                });
-        }
+        getFrappeToken({ code }).then((data) => {
+            localStorage.setItem('token', JSON.stringify(data));
+            router.replace('/dashboard');
+        });
     }, [searchParams, router]);
 
     return (
