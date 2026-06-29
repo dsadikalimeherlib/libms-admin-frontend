@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { addDays } from "date-fns";
-import { Loader2, RefreshCw, ScanLine, Search, Undo2 } from "lucide-react";
+import { Loader2, ScanLine } from "lucide-react";
 import { useForm, UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 
@@ -16,18 +16,14 @@ import {
   cn,
 } from "@/lib/utils";
 import {
-  completeReturn,
   formatDisplayDate,
-  lookupActiveTransaction,
-  renewBook,
   validateMember,
   type Book,
   type IssuePreviewRow,
   type Member,
-  type TransactionLookup,
 } from "@/lib/mock-library-api";
 import { getMembers, validateMembers, validateMemberTransaction } from "@/services/members";
-import { getAssetDetailFrappe, getBookTransactionDetails, submitBookIssue } from "@/services/books";
+import { getAssetByBarcode, getAssetDetailFrappe, getBookTransactionDetails, submitBookIssue, type AssetByBarcodeMessage } from "@/services/books";
 import { toast } from "react-toastify";
 
 const issueFormSchema = z.object({
@@ -39,12 +35,7 @@ const issueFormSchema = z.object({
     .or(z.literal("")),
 });
 
-const barcodeFormSchema = z.object({
-  barcode: z.string().trim().min(4, "Enter a valid barcode."),
-});
-
 type IssueFormValues = z.infer<typeof issueFormSchema>;
-type BarcodeFormValues = z.infer<typeof barcodeFormSchema>;
 
 const buildIssuePreview = (book: Book): IssuePreviewRow => {
   const transactionDate = new Date();
@@ -72,6 +63,8 @@ type AssetDoc = {
   donated_book: string;
   purchase_date: string;
 };
+
+type TabAssetData = AssetByBarcodeMessage;
 
 const RootError = ({ message }: { message?: string }) =>
   message ? <div className="inline-feedback">{message}</div> : null;
@@ -208,6 +201,8 @@ interface IssueTabProps {
   issueMutation: any;
   submitDisabled: boolean;
   onSubmit: () => void;
+  assetData?: TabAssetData | null;
+  loading?: boolean;
 }
 
 const IssueTab = ({
@@ -216,6 +211,8 @@ const IssueTab = ({
   issueMutation,
   submitDisabled,
   onSubmit,
+  assetData,
+  loading,
 }: IssueTabProps) => {
   return (
     <div className="space-y-6">
@@ -231,29 +228,29 @@ const IssueTab = ({
                 <TableHead>No.</TableHead>
                 <TableHead>Access No</TableHead>
                 <TableHead>Book Title</TableHead>
-                <TableHead>Author</TableHead>
+                <TableHead>Authors</TableHead>
                 <TableHead>Language</TableHead>
                 <TableHead>Volume</TableHead>
-                <TableHead>Transaction Date</TableHead>
-                <TableHead>Due Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {queuedBooks.length ? (
-                queuedBooks.map((book, index) => (
-                  <TableRow key={book.barcode}>
-                    <TableCell>{index + 1}</TableCell>
-                    <TableCell>{book.accessNo}</TableCell>
-                    <TableCell className="font-medium text-foreground">{book.title}</TableCell>
-                    <TableCell>{book.author}</TableCell>
-                    <TableCell>{book.language}</TableCell>
-                    <TableCell>{book.volume}</TableCell>
-                    <TableCell>{formatDisplayDate(book.transactionDate)}</TableCell>
-                    <TableCell>{formatDisplayDate(book.dueDate)}</TableCell>
-                  </TableRow>
-                ))
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                    <Loader2 className="mx-auto animate-spin" />
+                  </TableCell>
+                </TableRow>
+              ) : assetData ? (
+                <TableRow>
+                  <TableCell>1</TableCell>
+                  <TableCell>{assetData.asset_id}</TableCell>
+                  <TableCell className="font-medium text-foreground">{assetData.asset_name}</TableCell>
+                  <TableCell>{assetData.authors?.join(", ") || "—"}</TableCell>
+                  <TableCell>{assetData.languages?.join(", ") || "—"}</TableCell>
+                  <TableCell>{assetData.volume || "—"}</TableCell>
+                </TableRow>
               ) : (
-                <EmptyStateRow message="No books added yet." colSpan={8} />
+                <EmptyStateRow message="Scan a barcode above and click Issue tab to load book details." colSpan={6} />
               )}
             </TableBody>
           </Table>
@@ -271,295 +268,99 @@ const IssueTab = ({
   );
 };
 
-const ReturnTab = () => {
-  const queryClient = useQueryClient();
-  const form = useForm<BarcodeFormValues>({
-    resolver: zodResolver(barcodeFormSchema),
-    defaultValues: { barcode: "" },
-    mode: "onChange",
-  });
-  const [transaction, setTransaction] = useState<TransactionLookup | null>(null);
-
-  const lookupMutation = useMutation({
-    mutationFn: lookupActiveTransaction,
-    onSuccess: (result) => {
-      setTransaction(result);
-      form.clearErrors();
-      toast.success(`Active transaction found for ${result.member.name}.`);
-    },
-    onError: (error: Error) => {
-      setTransaction(null);
-      form.setError("barcode", { message: error.message });
-    },
-  });
-
-  const returnMutation = useMutation({
-    mutationFn: () => completeReturn(form.getValues("barcode")),
-    onSuccess: (result) => {
-      toast.success(
-        result.dueCharges > 0
-          ? `${result.title} returned. Due charges: ₹${result.dueCharges}.`
-          : `${result.title} returned successfully.`,
-      );
-      setTransaction(null);
-      form.reset();
-      queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
-    },
-    onError: (error: Error) => {
-      form.setError("root", { message: error.message });
-    },
-  });
-
-  const onFetch = async () => {
-    form.clearErrors("root");
-    const valid = await form.trigger("barcode");
-    if (!valid) return;
-    lookupMutation.mutate(form.getValues("barcode"));
-  };
-
-  const onSubmit = () => {
-    if (!transaction) {
-      form.setError("root", { message: "Fetch a valid transaction before returning." });
-      return;
-    }
-
-    returnMutation.mutate();
-  };
+const ReturnTab = ({ assetData, loading }: { assetData?: TabAssetData | null; loading?: boolean }) => {
+  const md = assetData?.member_details;
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* <section className="section-frame space-y-4">
-          <div>
-            <p className="section-heading">Return flow</p>
-            <p className="mt-1 text-sm text-muted-foreground">Enter the barcode to load the borrower and charge summary.</p>
-          </div>
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
-            <FormField
-              control={form.control}
-              name="barcode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Barcode</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Scan barcode"
-                      autoComplete="off"
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          void onFetch();
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="button" onClick={onFetch} disabled={lookupMutation.isPending} className="md:mt-8">
-              {lookupMutation.isPending ? <Loader2 className="animate-spin" /> : <Undo2 />}
-              Fetch transaction
-            </Button>
-          </div>
-          {transaction ? <MemberDetails member={transaction.member} /> : null}
-        </section> */}
-
-        <section className="section-frame space-y-4">
-          <p className="section-heading">Return transaction</p>
-          <div className="table-shell">
-            <Table>
-              <TableHeader>
+    <div className="space-y-6">
+      <section className="section-frame space-y-4">
+        <p className="section-heading">Return transaction</p>
+        <div className="table-shell">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>No.</TableHead>
+                <TableHead>Access No</TableHead>
+                <TableHead>Book Title</TableHead>
+                <TableHead>Authors</TableHead>
+                <TableHead>Volume</TableHead>
+                <TableHead>Transaction Date</TableHead>
+                <TableHead>Due Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
                 <TableRow>
-                  <TableHead>No.</TableHead>
-                  <TableHead>Access No</TableHead>
-                  <TableHead>Book Title</TableHead>
-                  <TableHead>Transaction Date</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Return Date</TableHead>
-                  <TableHead>Due Charges</TableHead>
+                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                    <Loader2 className="mx-auto animate-spin" />
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transaction ? (
-                  <TableRow>
-                    <TableCell>1</TableCell>
-                    <TableCell>{transaction.row.accessNo}</TableCell>
-                    <TableCell className="font-medium text-foreground">{transaction.row.title}</TableCell>
-                    <TableCell>{formatDisplayDate(transaction.row.transactionDate)}</TableCell>
-                    <TableCell>{formatDisplayDate(transaction.row.dueDate)}</TableCell>
-                    <TableCell>{formatDisplayDate(transaction.row.returnDate)}</TableCell>
-                    <TableCell>{transaction.row.dueCharges ? `₹${transaction.row.dueCharges}` : "—"}</TableCell>
-                  </TableRow>
-                ) : (
-                  <EmptyStateRow message="No return transaction loaded." colSpan={7} />
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </section>
-
-        <SubmitBar
-          error={form.formState.errors.root?.message}
-          disabled={!transaction || returnMutation.isPending}
-          loading={returnMutation.isPending}
-          label="Submit Return"
-        />
-      </form>
-    </Form>
+              ) : assetData && md ? (
+                <TableRow>
+                  <TableCell>1</TableCell>
+                  <TableCell>{assetData.asset_id}</TableCell>
+                  <TableCell className="font-medium text-foreground">{assetData.asset_name}</TableCell>
+                  <TableCell>{assetData.authors?.join(", ") || "—"}</TableCell>
+                  <TableCell>{assetData.volume || "—"}</TableCell>
+                  <TableCell>{formatDisplayDate(md.transaction_date)}</TableCell>
+                  <TableCell>{formatDisplayDate(md.due_date)}</TableCell>
+                </TableRow>
+              ) : (
+                <EmptyStateRow message="Scan a barcode above and click Return tab to load transaction." colSpan={7} />
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </section>
+    </div>
   );
 };
 
-const RenewTab = () => {
-  const queryClient = useQueryClient();
-  const form = useForm<BarcodeFormValues>({
-    resolver: zodResolver(barcodeFormSchema),
-    defaultValues: { barcode: "" },
-    mode: "onChange",
-  });
-  const [transaction, setTransaction] = useState<TransactionLookup | null>(null);
-
-  const lookupMutation = useMutation({
-    mutationFn: lookupActiveTransaction,
-    onSuccess: (result) => {
-      setTransaction(result);
-      form.clearErrors();
-      toast.success(`Transaction ready for renewal: ${result.row.title}.`);
-    },
-    onError: (error: Error) => {
-      setTransaction(null);
-      form.setError("barcode", { message: error.message });
-    },
-  });
-
-  const renewMutation = useMutation({
-    mutationFn: () => renewBook(form.getValues("barcode")),
-    onSuccess: (result) => {
-      setTransaction((current) =>
-        current
-          ? {
-            ...current,
-            row: {
-              ...current.row,
-              dueDate: result.dueDate,
-              returnDate: result.returnDate,
-              dueCharges: result.dueCharges,
-            },
-          }
-          : current,
-      );
-      toast.success(`Book renewed. New due date: ${formatDisplayDate(result.dueDate)}.`);
-      queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
-    },
-    onError: (error: Error) => {
-      form.setError("root", { message: error.message });
-    },
-  });
-
-  const projectedReturnDate = useMemo(
-    () => (transaction ? formatDisplayDate(transaction.row.returnDate) : "—"),
-    [transaction],
-  );
-
-  const onFetch = async () => {
-    form.clearErrors("root");
-    const valid = await form.trigger("barcode");
-    if (!valid) return;
-    lookupMutation.mutate(form.getValues("barcode"));
-  };
-
-  const onSubmit = () => {
-    if (!transaction) {
-      form.setError("root", { message: "Load a valid transaction before renewing." });
-      return;
-    }
-
-    renewMutation.mutate();
-  };
+const RenewTab = ({ assetData, loading }: { assetData?: TabAssetData | null; loading?: boolean }) => {
+  const md = assetData?.member_details;
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <section className="section-frame space-y-4">
-          <div>
-            <p className="section-heading">Renew flow</p>
-            <p className="mt-1 text-sm text-muted-foreground">Scan the active loan, review charges, then extend the due date.</p>
-          </div>
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
-            <FormField
-              control={form.control}
-              name="barcode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Barcode</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Scan barcode"
-                      autoComplete="off"
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          void onFetch();
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="button" variant="secondary" onClick={onFetch} disabled={lookupMutation.isPending} className="md:mt-8">
-              {lookupMutation.isPending ? <Loader2 className="animate-spin" /> : <RefreshCw />}
-              Fetch transaction
-            </Button>
-          </div>
-          {transaction ? <MemberDetails member={transaction.member} /> : null}
-        </section>
-
-        <section className="section-frame space-y-4">
-          <p className="section-heading">Renew transaction</p>
-          <div className="table-shell">
-            <Table>
-              <TableHeader>
+    <div className="space-y-6">
+      <section className="section-frame space-y-4">
+        <p className="section-heading">Renew transaction</p>
+        <div className="table-shell">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>No.</TableHead>
+                <TableHead>Access No</TableHead>
+                <TableHead>Book Title</TableHead>
+                <TableHead>Authors</TableHead>
+                <TableHead>Volume</TableHead>
+                <TableHead>Transaction Date</TableHead>
+                <TableHead>Due Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
                 <TableRow>
-                  <TableHead>No.</TableHead>
-                  <TableHead>Access No</TableHead>
-                  <TableHead>Book Title</TableHead>
-                  <TableHead>Transaction Date</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Return Date</TableHead>
-                  <TableHead>Due Charges</TableHead>
+                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                    <Loader2 className="mx-auto animate-spin" />
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transaction ? (
-                  <TableRow>
-                    <TableCell>1</TableCell>
-                    <TableCell>{transaction.row.accessNo}</TableCell>
-                    <TableCell className="font-medium text-foreground">{transaction.row.title}</TableCell>
-                    <TableCell>{formatDisplayDate(transaction.row.transactionDate)}</TableCell>
-                    <TableCell>{formatDisplayDate(transaction.row.dueDate)}</TableCell>
-                    <TableCell>{projectedReturnDate}</TableCell>
-                    <TableCell>{transaction.row.dueCharges ? `₹${transaction.row.dueCharges}` : "—"}</TableCell>
-                  </TableRow>
-                ) : (
-                  <EmptyStateRow message="No renewal transaction loaded." colSpan={7} />
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </section>
-
-        <SubmitBar
-          error={form.formState.errors.root?.message}
-          disabled={!transaction || renewMutation.isPending}
-          loading={renewMutation.isPending}
-          label="Submit Renew"
-        />
-      </form>
-    </Form>
+              ) : assetData && md ? (
+                <TableRow>
+                  <TableCell>1</TableCell>
+                  <TableCell>{assetData.asset_id}</TableCell>
+                  <TableCell className="font-medium text-foreground">{assetData.asset_name}</TableCell>
+                  <TableCell>{assetData.authors?.join(", ") || "—"}</TableCell>
+                  <TableCell>{assetData.volume || "—"}</TableCell>
+                  <TableCell>{formatDisplayDate(md.transaction_date)}</TableCell>
+                  <TableCell>{formatDisplayDate(md.due_date)}</TableCell>
+                </TableRow>
+              ) : (
+                <EmptyStateRow message="Scan a barcode above and click Renew tab to load transaction." colSpan={7} />
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </section>
+    </div>
   );
 };
 
@@ -585,6 +386,8 @@ const TransactionTabs = () => {
   const [queuedBooks, setQueuedBooks] = useState<IssuePreviewRow[]>([]);
   const [scannedBook, setScannedBook] = useState<Book | null>(null);
   const [assetDoc, setAssetDoc] = useState<AssetDoc | null>(null);
+  const [tabAssetData, setTabAssetData] = useState<TabAssetData | null>(null);
+  const [tabAssetLoading, setTabAssetLoading] = useState(false);
   const [memberSuggestions, setMemberSuggestions] = useState<MemberSuggestion[]>([]);
   const [memberInputFocused, setMemberInputFocused] = useState(false);
   const [dropdownActive, setDropdownActive] = useState(false);
@@ -859,7 +662,29 @@ const TransactionTabs = () => {
           </section>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as (typeof tabs)[number]["value"])}>
+        <Tabs
+          value={activeTab}
+          onValueChange={async (value) => {
+            const tab = value as (typeof tabs)[number]["value"];
+            setActiveTab(tab);
+            if (scannedBook?.barcode && member?.name) {
+              setTabAssetLoading(true);
+              setTabAssetData(null);
+              try {
+                const result = await getAssetByBarcode({
+                  barcode: scannedBook.barcode,
+                  member: member.name,
+                  transactionType: tab === "return" ? "Return" : tab === "renew" ? "Renew" : "Issue",
+                });
+                setTabAssetData(result);
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to fetch transaction details.");
+              } finally {
+                setTabAssetLoading(false);
+              }
+            }
+          }}
+        >
           <TabsList className="grid h-auto w-full grid-cols-3 rounded-lg border border-border/70 bg-muted/70 p-1">
             {tabs.map((tab) => (
               <TabsTrigger
@@ -879,13 +704,15 @@ const TransactionTabs = () => {
               issueMutation={issueMutation}
               submitDisabled={submitDisabled}
               onSubmit={onSubmit}
+              assetData={tabAssetData}
+              loading={tabAssetLoading}
             />
           </TabsContent>
           <TabsContent value="return" forceMount className={cn(activeTab !== "return" && "hidden", "mt-5")}>
-            <ReturnTab />
+            <ReturnTab assetData={tabAssetData} loading={tabAssetLoading} />
           </TabsContent>
           <TabsContent value="renew" forceMount className={cn(activeTab !== "renew" && "hidden", "mt-5")}>
-            <RenewTab />
+            <RenewTab assetData={tabAssetData} loading={tabAssetLoading} />
           </TabsContent>
         </Tabs>
       </div>

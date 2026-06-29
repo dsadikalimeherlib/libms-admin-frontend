@@ -141,7 +141,82 @@ export const submitBookIssue = async ({
     };
 };
 
+export type AssetByBarcodeMessage = {
+    asset_id: string;
+    item_code: string;
+    asset_name: string;
+    status: string;
+    volume: string;
+    authors: string[];
+    languages: string[];
+    member_details: {
+        member: string;
+        name: number;
+        transaction_date: string;
+        due_date: string;
+        book_title: string;
+    } | null;
+};
 
+export const getAssetByBarcode = async ({
+    barcode,
+    member,
+    transactionType,
+}: {
+    barcode: string;
+    member: string;
+    transactionType: "Issue" | "Return" | "Renew";
+}): Promise<AssetByBarcodeMessage> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("No token found");
+    const { access_token } = JSON.parse(token);
+
+    const tempName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
+
+    const selfDoc = {
+        docstatus: 0,
+        doctype: "Book Transaction",
+        name: tempName,
+        __islocal: 1,
+        __unsaved: 1,
+        transaction_type: transactionType,
+        otp_verified: 0,
+        book_transaction_detail: [],
+        return_book_details: [],
+        renew_book_details: [],
+        create_invoice: 0,
+        member,
+        scan_barcode: barcode,
+        idx: 0,
+        total_due_charges: 0,
+    };
+
+    const body = new URLSearchParams({
+        self: JSON.stringify(selfDoc),
+        docs: JSON.stringify(selfDoc),
+        method: "get_asset_by_barcode",
+        args: JSON.stringify({ self: selfDoc }),
+    });
+
+    const res = await fetch("https://libms-dev.aakvaerp.com/api/method/run_doc_method", {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${access_token}`,
+            Accept: "application/json",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "X-Requested-With": "XMLHttpRequest",
+            "X-Frappe-CMD": "",
+        },
+        body: body.toString(),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.message || data.error || "Failed to fetch asset by barcode");
+    if (!data.message) throw new Error("No asset details returned for this barcode");
+
+    return data.message as AssetByBarcodeMessage;
+};
 
 export const getAssetDetailFrappe = async (name: string) => {
     const token = localStorage.getItem('token');
