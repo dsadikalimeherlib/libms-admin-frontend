@@ -141,6 +141,178 @@ export const submitBookIssue = async ({
     };
 };
 
+export const submitBookReturn = async ({
+    member,
+    assetData,
+}: {
+    member: any;
+    assetData: AssetByBarcodeMessage;
+}) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token found');
+    const { access_token } = JSON.parse(token);
+
+    const formatDate = (isoString: string) => {
+        const d = new Date(isoString);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
+    const today = formatDate(new Date().toISOString());
+    const tempName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
+    const rowName = Math.random().toString(36).substring(2, 12);
+
+    const md = assetData.member_details!;
+
+    const doc = {
+        docstatus: 0,
+        doctype: "Book Transaction",
+        name: tempName,
+        __islocal: 1,
+        __unsaved: 1,
+        transaction_type: "Return",
+        member: member.name,
+        member_name: member.member_name || member.name,
+        membership_status: member.membership_status || "Active",
+        mobile: member.mobile || "",
+        otp_verified: 0,
+        scan_barcode: "",
+        create_invoice: 0,
+        total_due_charges: 0,
+        book_transaction_detail: [],
+        renew_book_details: [],
+        return_book_details: [
+            {
+                docstatus: 0,
+                doctype: "Return Book Details",
+                name: rowName,
+                __islocal: 1,
+                __unsaved: 1,
+                access_no: assetData.asset_id,
+                book_title: assetData.asset_name,
+                transaction_date: md.transaction_date,
+                due_date: md.due_date,
+                return_date: today,
+                due_charges: 0,
+                transaction_no: md.name,
+                parent: tempName,
+                parentfield: "return_book_details",
+                parenttype: "Book Transaction",
+                idx: 1,
+            },
+        ],
+    };
+
+    const params = new URLSearchParams({
+        doc: JSON.stringify(doc),
+        action: "Submit",
+    });
+
+    const res = await fetch(
+        "https://libms-dev.aakvaerp.com/api/method/frappe.desk.form.save.savedocs",
+        {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+                Accept: "application/json",
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: params.toString(),
+        }
+    );
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to submit return transaction");
+    return data.docs?.[0] || data.message || {};
+};
+
+export const submitBookRenew = async ({
+    member,
+    assetData,
+}: {
+    member: any;
+    assetData: AssetByBarcodeMessage;
+}) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token found');
+    const { access_token } = JSON.parse(token);
+
+    const formatDate = (isoString: string) => {
+        const d = new Date(isoString);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
+    const today = formatDate(new Date().toISOString());
+    const renewDueDate = formatDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString());
+    const tempName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
+    const rowName = Math.random().toString(36).substring(2, 12);
+
+    const md = assetData.member_details!;
+
+    const doc = {
+        docstatus: 0,
+        doctype: "Book Transaction",
+        name: tempName,
+        __islocal: 1,
+        __unsaved: 1,
+        transaction_type: "Renew",
+        member: member.name,
+        member_name: member.member_name || member.name,
+        membership_status: member.membership_status || "Active",
+        mobile: member.mobile || "",
+        otp_verified: 0,
+        scan_barcode: "",
+        create_invoice: 0,
+        total_due_charges: 0,
+        book_transaction_detail: [],
+        return_book_details: [],
+        renew_book_details: [
+            {
+                docstatus: 0,
+                doctype: "Renew Book Details",
+                name: rowName,
+                __islocal: 1,
+                __unsaved: 1,
+                access_no: assetData.asset_id,
+                book_title: assetData.asset_name,
+                issue_date: md.transaction_date,
+                previous_due_date: md.due_date,
+                return_date: today,
+                renew_due_date: renewDueDate,
+                due_charges: 0,
+                transaction_no: md.name,
+                parent: tempName,
+                parentfield: "renew_book_details",
+                parenttype: "Book Transaction",
+                idx: 1,
+            },
+        ],
+    };
+
+    const params = new URLSearchParams({
+        doc: JSON.stringify(doc),
+        action: "Submit",
+    });
+
+    const res = await fetch(
+        "https://libms-dev.aakvaerp.com/api/method/frappe.desk.form.save.savedocs",
+        {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+                Accept: "application/json",
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: params.toString(),
+        }
+    );
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to submit renew transaction");
+    return data.docs?.[0] || data.message || {};
+};
+
 export type AssetByBarcodeMessage = {
     asset_id: string;
     item_code: string;

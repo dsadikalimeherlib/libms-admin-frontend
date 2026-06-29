@@ -23,7 +23,7 @@ import {
   type Member,
 } from "@/lib/mock-library-api";
 import { getMembers, validateMembers, validateMemberTransaction } from "@/services/members";
-import { getAssetByBarcode, getAssetDetailFrappe, getBookTransactionDetails, submitBookIssue, type AssetByBarcodeMessage } from "@/services/books";
+import { getAssetByBarcode, getAssetDetailFrappe, getBookTransactionDetails, submitBookIssue, submitBookReturn, submitBookRenew, type AssetByBarcodeMessage } from "@/services/books";
 import { toast } from "react-toastify";
 
 const issueFormSchema = z.object({
@@ -268,8 +268,19 @@ const IssueTab = ({
   );
 };
 
-const ReturnTab = ({ assetData, loading }: { assetData?: TabAssetData | null; loading?: boolean }) => {
+const ReturnTab = ({
+  assetData,
+  loading,
+  returnMutation,
+  onSubmitReturn,
+}: {
+  assetData?: TabAssetData | null;
+  loading?: boolean;
+  returnMutation: any;
+  onSubmitReturn: () => void;
+}) => {
   const md = assetData?.member_details;
+  const submitDisabled = !assetData || !md || returnMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -312,12 +323,30 @@ const ReturnTab = ({ assetData, loading }: { assetData?: TabAssetData | null; lo
           </Table>
         </div>
       </section>
+
+      <SubmitBar
+        disabled={submitDisabled}
+        loading={returnMutation.isPending}
+        label="Submit Return"
+        onClick={onSubmitReturn}
+      />
     </div>
   );
 };
 
-const RenewTab = ({ assetData, loading }: { assetData?: TabAssetData | null; loading?: boolean }) => {
+const RenewTab = ({
+  assetData,
+  loading,
+  renewMutation,
+  onSubmitRenew,
+}: {
+  assetData?: TabAssetData | null;
+  loading?: boolean;
+  renewMutation: any;
+  onSubmitRenew: () => void;
+}) => {
   const md = assetData?.member_details;
+  const submitDisabled = !assetData || !md || renewMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -360,6 +389,13 @@ const RenewTab = ({ assetData, loading }: { assetData?: TabAssetData | null; loa
           </Table>
         </div>
       </section>
+
+      <SubmitBar
+        disabled={submitDisabled}
+        loading={renewMutation.isPending}
+        label="Submit Renew"
+        onClick={onSubmitRenew}
+      />
     </div>
   );
 };
@@ -473,7 +509,45 @@ const TransactionTabs = () => {
     },
   });
 
+  const returnMutation = useMutation({
+    mutationFn: () => submitBookReturn({ member: member!, assetData: tabAssetData! }),
+    onSuccess: () => {
+      setTabAssetData(null);
+      setScannedBook(null);
+      toast.success("Book returned successfully.");
+      queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const renewMutation = useMutation({
+    mutationFn: () => submitBookRenew({ member: member!, assetData: tabAssetData! }),
+    onSuccess: () => {
+      setTabAssetData(null);
+      setScannedBook(null);
+      toast.success("Book renewed successfully.");
+      queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
   const submitDisabled = !member || queuedBooks.length === 0 || issueMutation.isPending;
+
+  const onSubmitReturn = () => {
+    if (!member) { toast.error("Member is required."); return; }
+    if (!tabAssetData?.member_details) { toast.error("Scan a barcode to load transaction details."); return; }
+    returnMutation.mutate();
+  };
+
+  const onSubmitRenew = () => {
+    if (!member) { toast.error("Member is required."); return; }
+    if (!tabAssetData?.member_details) { toast.error("Scan a barcode to load transaction details."); return; }
+    renewMutation.mutate();
+  };
 
   const onAddBook = async () => {
     form.clearErrors("root");
@@ -709,10 +783,10 @@ const TransactionTabs = () => {
             />
           </TabsContent>
           <TabsContent value="return" forceMount className={cn(activeTab !== "return" && "hidden", "mt-5")}>
-            <ReturnTab assetData={tabAssetData} loading={tabAssetLoading} />
+            <ReturnTab assetData={tabAssetData} loading={tabAssetLoading} returnMutation={returnMutation} onSubmitReturn={onSubmitReturn} />
           </TabsContent>
           <TabsContent value="renew" forceMount className={cn(activeTab !== "renew" && "hidden", "mt-5")}>
-            <RenewTab assetData={tabAssetData} loading={tabAssetLoading} />
+            <RenewTab assetData={tabAssetData} loading={tabAssetLoading} renewMutation={renewMutation} onSubmitRenew={onSubmitRenew} />
           </TabsContent>
         </Tabs>
       </div>
