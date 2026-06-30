@@ -277,10 +277,15 @@ const ReturnTab = ({
   assetData?: TabAssetData | null;
   loading?: boolean;
   returnMutation: any;
-  onSubmitReturn: () => void;
+  onSubmitReturn: (totalDueCharges: number) => void;
 }) => {
   const md = assetData?.member_details;
   const submitDisabled = !assetData || !md || returnMutation.isPending;
+  const [totalDueCharges, setTotalDueCharges] = useState(0);
+
+  useEffect(() => {
+    setTotalDueCharges(assetData?.total_due_charges || 0);
+  }, [assetData]);
 
   return (
     <div className="space-y-6">
@@ -293,10 +298,10 @@ const ReturnTab = ({
                 <TableHead>No.</TableHead>
                 <TableHead>Access No</TableHead>
                 <TableHead>Book Title</TableHead>
-                <TableHead>Authors</TableHead>
-                <TableHead>Volume</TableHead>
                 <TableHead>Transaction Date</TableHead>
                 <TableHead>Due Date</TableHead>
+                <TableHead>Return Date</TableHead>
+                <TableHead>Due Charges</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -311,10 +316,10 @@ const ReturnTab = ({
                   <TableCell>1</TableCell>
                   <TableCell>{assetData.asset_id}</TableCell>
                   <TableCell className="font-medium text-foreground">{assetData.asset_name}</TableCell>
-                  <TableCell>{assetData.authors?.join(", ") || "—"}</TableCell>
-                  <TableCell>{assetData.volume || "—"}</TableCell>
                   <TableCell>{formatDisplayDate(md.transaction_date)}</TableCell>
                   <TableCell>{formatDisplayDate(md.due_date)}</TableCell>
+                  <TableCell>{formatDisplayDate(new Date().toISOString())}</TableCell>
+                  <TableCell>{assetData.total_due_charges ?? 0}</TableCell>
                 </TableRow>
               ) : (
                 <EmptyStateRow message="Scan a barcode above and click Return tab to load transaction." colSpan={7} />
@@ -324,11 +329,20 @@ const ReturnTab = ({
         </div>
       </section>
 
+      <div className="flex items-center justify-end gap-4 py-4 md:ml-auto">
+        <label className="text-sm font-medium">Total Due Charges</label>
+        <Input
+          type="number"
+          value={totalDueCharges}
+          onChange={(e) => setTotalDueCharges(Number(e.target.value))}
+          className="w-32"
+        />
+      </div>
       <SubmitBar
         disabled={submitDisabled}
         loading={returnMutation.isPending}
         label="Submit Return"
-        onClick={onSubmitReturn}
+        onClick={() => onSubmitReturn(totalDueCharges)}
       />
     </div>
   );
@@ -343,10 +357,15 @@ const RenewTab = ({
   assetData?: TabAssetData | null;
   loading?: boolean;
   renewMutation: any;
-  onSubmitRenew: () => void;
+  onSubmitRenew: (totalDueCharges: number) => void;
 }) => {
   const md = assetData?.member_details;
   const submitDisabled = !assetData || !md || renewMutation.isPending;
+  const [totalDueCharges, setTotalDueCharges] = useState(0);
+
+  useEffect(() => {
+    setTotalDueCharges(assetData?.total_due_charges || 0);
+  }, [assetData]);
 
   return (
     <div className="space-y-6">
@@ -359,16 +378,17 @@ const RenewTab = ({
                 <TableHead>No.</TableHead>
                 <TableHead>Access No</TableHead>
                 <TableHead>Book Title</TableHead>
-                <TableHead>Authors</TableHead>
-                <TableHead>Volume</TableHead>
-                <TableHead>Transaction Date</TableHead>
-                <TableHead>Due Date</TableHead>
+                <TableHead>Issue Date</TableHead>
+                <TableHead>Previous Due Date</TableHead>
+                <TableHead>Return Date</TableHead>
+                <TableHead>Renew Date</TableHead>
+                <TableHead>Due Charges</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
                     <Loader2 className="mx-auto animate-spin" />
                   </TableCell>
                 </TableRow>
@@ -377,24 +397,34 @@ const RenewTab = ({
                   <TableCell>1</TableCell>
                   <TableCell>{assetData.asset_id}</TableCell>
                   <TableCell className="font-medium text-foreground">{assetData.asset_name}</TableCell>
-                  <TableCell>{assetData.authors?.join(", ") || "—"}</TableCell>
-                  <TableCell>{assetData.volume || "—"}</TableCell>
                   <TableCell>{formatDisplayDate(md.transaction_date)}</TableCell>
                   <TableCell>{formatDisplayDate(md.due_date)}</TableCell>
+                  <TableCell>{formatDisplayDate(new Date().toISOString())}</TableCell>
+                  <TableCell>{formatDisplayDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())}</TableCell>
+                  <TableCell>{assetData.total_due_charges ?? 0}</TableCell>
                 </TableRow>
               ) : (
-                <EmptyStateRow message="Scan a barcode above and click Renew tab to load transaction." colSpan={7} />
+                <EmptyStateRow message="Scan a barcode above and click Renew tab to load transaction." colSpan={8} />
               )}
             </TableBody>
           </Table>
         </div>
       </section>
 
+      <div className="flex items-center justify-end gap-4 py-4 md:ml-auto">
+        <label className="text-sm font-medium">Total Due Charges</label>
+        <Input
+          type="number"
+          value={totalDueCharges}
+          onChange={(e) => setTotalDueCharges(Number(e.target.value))}
+          className="w-32"
+        />
+      </div>
       <SubmitBar
         disabled={submitDisabled}
         loading={renewMutation.isPending}
         label="Submit Renew"
-        onClick={onSubmitRenew}
+        onClick={() => onSubmitRenew(totalDueCharges)}
       />
     </div>
   );
@@ -456,17 +486,7 @@ const TransactionTabs = () => {
     };
   }, [watchedQuery]);
 
-  const memberMutation = useMutation({
-    mutationFn: validateMember,
-    onSuccess: (validatedMember) => {
-      form.clearErrors("memberQuery");
-      form.clearErrors("root");
-      toast.success(`Member verified: ${validatedMember.name}`);
-    },
-    onError: (error: Error) => {
-      form.setError("memberQuery", { message: error.message });
-    },
-  });
+
 
   const bookMutation = useMutation({
     mutationFn: (barcode: string) =>
@@ -510,7 +530,7 @@ const TransactionTabs = () => {
   });
 
   const returnMutation = useMutation({
-    mutationFn: () => submitBookReturn({ member: member!, assetData: tabAssetData! }),
+    mutationFn: (totalDueCharges: number) => submitBookReturn({ member: member!, assetData: tabAssetData!, totalDueCharges }),
     onSuccess: () => {
       setTabAssetData(null);
       setScannedBook(null);
@@ -523,7 +543,7 @@ const TransactionTabs = () => {
   });
 
   const renewMutation = useMutation({
-    mutationFn: () => submitBookRenew({ member: member!, assetData: tabAssetData! }),
+    mutationFn: (totalDueCharges: number) => submitBookRenew({ member: member!, assetData: tabAssetData!, totalDueCharges }),
     onSuccess: () => {
       setTabAssetData(null);
       setScannedBook(null);
@@ -537,16 +557,16 @@ const TransactionTabs = () => {
 
   const submitDisabled = !member || queuedBooks.length === 0 || issueMutation.isPending;
 
-  const onSubmitReturn = () => {
+  const onSubmitReturn = (totalDueCharges: number) => {
     if (!member) { toast.error("Member is required."); return; }
     if (!tabAssetData?.member_details) { toast.error("Scan a barcode to load transaction details."); return; }
-    returnMutation.mutate();
+    returnMutation.mutate(totalDueCharges);
   };
 
-  const onSubmitRenew = () => {
+  const onSubmitRenew = (totalDueCharges: number) => {
     if (!member) { toast.error("Member is required."); return; }
     if (!tabAssetData?.member_details) { toast.error("Scan a barcode to load transaction details."); return; }
-    renewMutation.mutate();
+    renewMutation.mutate(totalDueCharges);
   };
 
   const onAddBook = async () => {
@@ -752,7 +772,7 @@ const TransactionTabs = () => {
                 });
                 setTabAssetData(result);
               } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to fetch transaction details.");
+                // toast.error(err instanceof Error ? err.message : "Failed to fetch transaction details.");
               } finally {
                 setTabAssetLoading(false);
               }

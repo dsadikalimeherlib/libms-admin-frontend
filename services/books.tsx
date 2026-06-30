@@ -144,9 +144,11 @@ export const submitBookIssue = async ({
 export const submitBookReturn = async ({
     member,
     assetData,
+    totalDueCharges = 0,
 }: {
     member: any;
     assetData: AssetByBarcodeMessage;
+    totalDueCharges?: number;
 }) => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('No token found');
@@ -177,7 +179,7 @@ export const submitBookReturn = async ({
         otp_verified: 0,
         scan_barcode: "",
         create_invoice: 0,
-        total_due_charges: 0,
+        total_due_charges: totalDueCharges,
         book_transaction_detail: [],
         renew_book_details: [],
         return_book_details: [
@@ -229,9 +231,11 @@ export const submitBookReturn = async ({
 export const submitBookRenew = async ({
     member,
     assetData,
+    totalDueCharges = 0,
 }: {
     member: any;
     assetData: AssetByBarcodeMessage;
+    totalDueCharges?: number;
 }) => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('No token found');
@@ -263,7 +267,7 @@ export const submitBookRenew = async ({
         otp_verified: 0,
         scan_barcode: "",
         create_invoice: 0,
-        total_due_charges: 0,
+        total_due_charges: totalDueCharges,
         book_transaction_detail: [],
         return_book_details: [],
         renew_book_details: [
@@ -321,6 +325,7 @@ export type AssetByBarcodeMessage = {
     volume: string;
     authors: string[];
     languages: string[];
+    total_due_charges?: number;
     member_details: {
         member: string;
         name: number;
@@ -387,7 +392,14 @@ export const getAssetByBarcode = async ({
     if (!res.ok) throw new Error(data.message || data.error || "Failed to fetch asset by barcode");
     if (!data.message) throw new Error("No asset details returned for this barcode");
 
-    return data.message as AssetByBarcodeMessage;
+    const message = data.message as AssetByBarcodeMessage;
+    // total_due_charges lives on docs[0], not on message — merge it in
+    const totalDueCharges = data.docs?.[0]?.total_due_charges;
+    if (totalDueCharges !== undefined) {
+        message.total_due_charges = totalDueCharges;
+    }
+
+    return message;
 };
 
 export const getAssetDetailFrappe = async (name: string) => {
