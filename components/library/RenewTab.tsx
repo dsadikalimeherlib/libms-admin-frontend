@@ -26,8 +26,11 @@ export const RenewTab = ({
 
   return (
     <div className="space-y-6">
-      <section className="section-frame space-y-4">
-        <p className="section-heading">Renew transaction</p>
+      <section className="space-y-4">
+        <div>
+          <p className="section-heading">Renew transaction</p>
+          <p className="mt-1 text-sm text-muted-foreground">Review queued books before renewing.</p>
+        </div>
         <div className="table-shell">
           <Table>
             <TableHeader>

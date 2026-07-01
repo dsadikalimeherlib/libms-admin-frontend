@@ -1,13 +1,9 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query";
-import { BookCopy, LogOut, ShieldCheck, TimerReset, Users } from "lucide-react";
+
 
 import TransactionTabs from "@/components/library/TransactionTabs";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/context/AuthContext";
-import { getDashboardMetrics } from "@/lib/mock-library-api";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import MainLayout from "../layouts/main-layout";
 
 
@@ -28,6 +24,9 @@ const Dashboard = () => {
                                 <CardTitle className="mt-1 text-2xl">Issue, return, and renew</CardTitle>
                             </div>
                             <span className="data-chip">Independent submit actions per tab</span>
+                        </div>
+                        <div className="flex item">
+                            <a target="_blank" href="https://libms-dev.aakvaerp.com/app/lms" className="text-blue-600 hover:text-blue-800">Admin Panel</a>
                         </div>
                     </div>
                     <Card className="panel-surface border-border/70 pt-6">

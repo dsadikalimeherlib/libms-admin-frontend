@@ -1,4 +1,14 @@
 
+const handleUnauthorized = () => {
+    localStorage.removeItem("token");
+    window.location.href =
+        "https://libms-dev.aakvaerp.com/api/method/frappe.integrations.oauth2.authorize" +
+        "?client_id=imdsp6muko" +
+        "&redirect_uri=http://localhost:3000/callback" +
+        "&response_type=code" +
+        "&scope=all";
+};
+
 export const getMembers = async ({ text = '' }: { text: string }) => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -27,6 +37,11 @@ export const getMembers = async ({ text = '' }: { text: string }) => {
     );
 
     const data = await res.json();
+
+    if (res.status === 401) {
+        handleUnauthorized();
+        return;
+    }
 
     if (!res.ok) {
         throw new Error(data.error || "Failed to fetch members");
@@ -71,6 +86,11 @@ export const validateMembers = async ({ text = '' }: { text: string }) => {
 
     const data = await res.json();
 
+    if (res.status === 401) {
+        handleUnauthorized();
+        return;
+    }
+
     if (!res.ok) {
         throw new Error(data.error || "Failed to validate member");
     }
@@ -103,6 +123,11 @@ export const validateMemberTransaction = async ({ text = '' }: { text: string })
     );
 
     const data = await res.json();
+
+    if (res.status === 401) {
+        handleUnauthorized();
+        return;
+    }
 
     if (!res.ok) {
         throw new Error(data.error || "Failed to validate member transaction");

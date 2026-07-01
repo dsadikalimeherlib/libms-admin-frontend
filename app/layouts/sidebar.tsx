@@ -15,7 +15,7 @@ const Sidebar = () => {
             <div className="min-h-[calc(100vh-150px)]">
                 <ul>
                     <li><Link className={`${linkClass} ${pathname === '/dashboard' ? 'text-black' : 'text-[var(--color-muted-foreground)]'}`} href='/dashboard'>Dashboard</Link></li>
-                    <li><Link className={`${linkClass} ${pathname === '/books' ? 'text-black' : 'text-[var(--color-muted-foreground)]'}`} href='/books'>Books</Link></li>
+                    <li><Link className={`${linkClass} ${pathname === '/books' ? 'text-black' : 'text-[var(--color-muted-foreground)]'}`} href='/book-transactions'>Book Transactions</Link></li>
                 </ul>
             </div>
             <div onClick={signOut} className="flex items-center gap-4 p-4 cursor-pointer text-sm leading-[var(--tw-leading,var(--text-sm--line-height))] font-semibold tracking-[0.16em] text-[var(--color-muted-foreground)] uppercase">

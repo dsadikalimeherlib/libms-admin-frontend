@@ -25,9 +25,9 @@ export const IssueTab = ({
 }: IssueTabProps) => {
   return (
     <div className="space-y-6">
-      <section className="section-frame space-y-4">
+      <section className="space-y-4">
         <div>
-          <p className="section-heading">Step 3 · Transaction data</p>
+          <p className="section-heading">Issue transaction</p>
           <p className="mt-1 text-sm text-muted-foreground">Review queued books before issuing.</p>
         </div>
         <div className="table-shell">

@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { Member, Book } from "@/lib/mock-library-api";
 import { UseFormReturn } from "react-hook-form";
-import { IssueFormValues, AssetDoc, MemberSuggestion } from "./TransactionTabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { IssueFormValues, AssetDoc, MemberSuggestion, TabAssetData } from "./TransactionTabs";
 
 export const MemberDetails = ({ member }: { member: Member }) => (
   <div className="section-frame grid gap-3 md:grid-cols-2">
@@ -105,6 +106,10 @@ export interface TransactionFormProps {
   bookMutation: any;
   getAssetDetailFun: (v: string) => void;
   scannedBook: Book | null;
+  activeTab: string;
+  setActiveTab: (v: any) => void;
+  tabs: readonly { value: string; label: string }[];
+  setTabAssetData: (v: TabAssetData | null) => void;
 }
 
 export const TransactionForm = ({
@@ -124,15 +129,53 @@ export const TransactionForm = ({
   bookMutation,
   getAssetDetailFun,
   scannedBook,
+  activeTab,
+  setActiveTab,
+  tabs,
+  setTabAssetData,
 }: TransactionFormProps) => {
   return (
     <Form {...form}>
       <div className="space-y-6">
         <div className="flex gap-6">
-          <section className="space-y-4 w-full">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex-1 space-y-4">
+            {/* <div>
+              <p className="section-heading">Step 1 · Transaction Types</p>
+              <p className="mt-1 text-sm text-muted-foreground">Select transaction types: Issue, Return, Renew</p>
+            </div> */}
+            <FormLabel>Transaction type</FormLabel>
+            <Select
+              value={activeTab}
+              onValueChange={(value) => {
+                const tab = value;
+                setActiveTab(tab);
+                setMember(null);
+                setQueuedBooks([]);
+                setScannedBook(null);
+                setAssetDoc(null);
+                setTabAssetData(null);
+                form.clearErrors();
+                form.setValue("memberQuery", "", { shouldValidate: false });
+                form.setValue("barcode", "", { shouldValidate: false });
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select transaction type" />
+              </SelectTrigger>
+              <SelectContent>
+                {tabs.map((tab) => (
+                  <SelectItem key={tab.value} value={tab.value}>
+                    {tab.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <section className="space-y-4 flex-1">
+            {/* <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="section-heading">Step 1 · Member validation</p>
+                <p className="section-heading">Step 2 · Member validation</p>
                 <p className="mt-1 text-sm text-muted-foreground">Validate by member ID, mobile, or card number.</p>
               </div>
               {member ? (
@@ -150,7 +193,7 @@ export const TransactionForm = ({
                   Reset member
                 </Button>
               ) : null}
-            </div>
+            </div> */}
             <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
               <FormField
                 control={form.control}
@@ -192,11 +235,11 @@ export const TransactionForm = ({
             {member ? <MemberDetails member={member} /> : null}
           </section>
 
-          <section className="space-y-4 w-full">
-            <div>
-              <p className="section-heading">Step 2 · Barcode input</p>
+          <section className="space-y-4 flex-1">
+            {/* <div>
+              <p className="section-heading">Step 3 · Barcode input</p>
               <p className="mt-1 text-sm text-muted-foreground">Manual entry or scanner-ready wedge input supported.</p>
-            </div>
+            </div> */}
             <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
               <FormField
                 control={form.control}

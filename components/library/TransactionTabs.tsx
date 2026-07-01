@@ -2,28 +2,23 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { addDays } from "date-fns";
-import { Loader2, ScanLine } from "lucide-react";
-import { useForm, UseFormReturn } from "react-hook-form";
+import { Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TableCell, TableRow } from "@/components/ui/table";
 import {
   cn,
 } from "@/lib/utils";
 import {
-  formatDisplayDate,
-  validateMember,
   type Book,
   type IssuePreviewRow,
   type Member,
 } from "@/lib/mock-library-api";
 import { getMembers, validateMembers, validateMemberTransaction } from "@/services/members";
-import { getAssetByBarcode, getAssetDetailFrappe, getBookTransactionDetails, submitBookIssue, submitBookReturn, submitBookRenew, type AssetByBarcodeMessage } from "@/services/books";
+import { getAssetDetailFrappe, getBookTransactionDetails, submitBookIssue, submitBookReturn, submitBookRenew, type AssetByBarcodeMessage } from "@/services/books";
 import { toast } from "react-toastify";
 
 import { IssueTab } from "./IssueTab";
@@ -97,7 +92,7 @@ export const SubmitBar = ({
   label: string;
   onClick?: () => void;
 }) => (
-  <div className="sticky-submit-bar">
+  <div className="">
     <RootError message={error} />
     <div className="flex justify-end md:ml-auto">
       <Button
@@ -339,72 +334,48 @@ const TransactionTabs = () => {
   };
 
   return (
-    <>
-      <Tabs
-        value={activeTab}
-        onValueChange={(value) => {
-          const tab = value as (typeof tabs)[number]["value"];
-          setActiveTab(tab);
-          setMember(null);
-          setQueuedBooks([]);
-          setScannedBook(null);
-          setAssetDoc(null);
-          setTabAssetData(null);
-          form.clearErrors();
-          form.setValue("memberQuery", "", { shouldValidate: false });
-          form.setValue("barcode", "", { shouldValidate: false });
-        }}
-      >
-        <TabsList className="grid h-auto w-full grid-cols-3 rounded-lg border border-border/70 bg-muted/70 p-1 mb-4">
-          {tabs.map((tab) => (
-            <TabsTrigger
-              key={tab.value}
-              value={tab.value}
-              className="rounded-md px-4 py-2.5 text-sm font-semibold data-[state=active]:bg-card data-[state=active]:shadow-panel"
-            >
-              {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+    <div className="flex flex-col gap-4">
+      <TransactionForm
+        form={form}
+        member={member}
+        setMember={setMember}
+        setQueuedBooks={setQueuedBooks}
+        setScannedBook={setScannedBook}
+        setAssetDoc={setAssetDoc}
+        memberInputFocused={memberInputFocused}
+        setMemberInputFocused={setMemberInputFocused}
+        dropdownActive={dropdownActive}
+        setDropdownActive={setDropdownActive}
+        memberSuggestions={memberSuggestions}
+        handleSuggestionClick={handleSuggestionClick}
+        onAddBook={onAddBook}
+        bookMutation={bookMutation}
+        getAssetDetailFun={getAssetDetailFun}
+        scannedBook={scannedBook}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        tabs={tabs}
+        setTabAssetData={setTabAssetData}
+      />
 
-        <TransactionForm
+      <div className={cn(activeTab !== "issue" && "hidden", "mt-1")}>
+        <IssueTab
           form={form}
-          member={member}
-          setMember={setMember}
-          setQueuedBooks={setQueuedBooks}
-          setScannedBook={setScannedBook}
-          setAssetDoc={setAssetDoc}
-          memberInputFocused={memberInputFocused}
-          setMemberInputFocused={setMemberInputFocused}
-          dropdownActive={dropdownActive}
-          setDropdownActive={setDropdownActive}
-          memberSuggestions={memberSuggestions}
-          handleSuggestionClick={handleSuggestionClick}
-          onAddBook={onAddBook}
-          bookMutation={bookMutation}
-          getAssetDetailFun={getAssetDetailFun}
-          scannedBook={scannedBook}
+          queuedBooks={queuedBooks}
+          issueMutation={issueMutation}
+          submitDisabled={submitDisabled}
+          onSubmit={onSubmit}
+          assetData={tabAssetData}
+          loading={tabAssetLoading}
         />
-
-        <TabsContent value="issue" forceMount className={cn(activeTab !== "issue" && "hidden", "mt-5")}>
-          <IssueTab
-            form={form}
-            queuedBooks={queuedBooks}
-            issueMutation={issueMutation}
-            submitDisabled={submitDisabled}
-            onSubmit={onSubmit}
-            assetData={tabAssetData}
-            loading={tabAssetLoading}
-          />
-        </TabsContent>
-        <TabsContent value="return" forceMount className={cn(activeTab !== "return" && "hidden", "mt-5")}>
-          <ReturnTab assetData={tabAssetData} loading={tabAssetLoading} returnMutation={returnMutation} onSubmitReturn={onSubmitReturn} />
-        </TabsContent>
-        <TabsContent value="renew" forceMount className={cn(activeTab !== "renew" && "hidden", "mt-5")}>
-          <RenewTab assetData={tabAssetData} loading={tabAssetLoading} renewMutation={renewMutation} onSubmitRenew={onSubmitRenew} />
-        </TabsContent>
-      </Tabs>
-    </>
+      </div>
+      <div className={cn(activeTab !== "return" && "hidden", "mt-1")}>
+        <ReturnTab assetData={tabAssetData} loading={tabAssetLoading} returnMutation={returnMutation} onSubmitReturn={onSubmitReturn} />
+      </div>
+      <div className={cn(activeTab !== "renew" && "hidden", "mt-1")}>
+        <RenewTab assetData={tabAssetData} loading={tabAssetLoading} renewMutation={renewMutation} onSubmitRenew={onSubmitRenew} />
+      </div>
+    </div>
   );
 };
 
