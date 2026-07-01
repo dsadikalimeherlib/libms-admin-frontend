@@ -18,7 +18,7 @@ import {
   type Member,
 } from "@/lib/mock-library-api";
 import { getMembers, validateMembers, validateMemberTransaction } from "@/services/members";
-import { getAssetDetailFrappe, getBookTransactionDetails, submitBookIssue, submitBookReturn, submitBookRenew, type AssetByBarcodeMessage } from "@/services/books";
+import { getBookTransactionDetails, submitBookIssue, submitBookReturn, submitBookRenew, getAssetByBarcode, type AssetByBarcodeMessage } from "@/services/books";
 import { toast } from "react-toastify";
 
 import { IssueTab } from "./IssueTab";
@@ -292,45 +292,52 @@ const TransactionTabs = () => {
     }).catch((error: Error) => {
       setMember(null);
     });
-
-    validateMemberTransaction({ text: selectionValue }).then((validatedMember) => {
-      if (validatedMember.valid) {
-        toast.success(`${validatedMember.message}`);
-      } else {
-        toast.error(`${validatedMember.message}`);
-      }
-    }).catch((error: Error) => {
-      toast.error(`${error.message}`);
-    });
+    if (activeTab !== 'return') {
+      validateMemberTransaction({ text: selectionValue }).then((validatedMember) => {
+        if (validatedMember.valid) {
+          toast.success(`${validatedMember.message}`);
+        } else {
+          toast.error(`${validatedMember.message}`);
+        }
+      }).catch((error: Error) => {
+        toast.error(`${error.message}`);
+      });
+    }
   };
 
   const getAssetDetailFun = async (name: string) => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("No token found");
-    const { access_token } = JSON.parse(token);
+    try {
+      setTabAssetLoading(true);
+      const transactionType = activeTab === "issue" ? "Issue" : activeTab === "return" ? "Return" : "Renew";
+      const data = await getAssetByBarcode({
+        barcode: name,
+        member: member?.name || "",
+        transactionType,
+      });
 
-    const data = await getAssetDetailFrappe(encodeURIComponent(name));
+      setTabAssetData(data);
+      setAssetDoc(null);
 
+      const mappedBook: Book = {
+        barcode: data.asset_id,
+        accessNo: data.asset_id,
+        title: data.asset_name || data.asset_id,
+        author: data.authors?.join(", ") || "",
+        language: data.languages?.join(", ") || "",
+        volume: data.volume || "",
+        location: "",
+        status: data.status || "",
+      };
 
-    const asset: AssetDoc = data.docs[0];
-
-
-    const mappedBook: Book = {
-      barcode: asset.name,
-      accessNo: asset.name,
-      title: asset.asset_name || asset.item_name || asset.name,
-      author: "",
-      language: "",
-      volume: "",
-      location: asset.location || "",
-      status: asset.status || "",
-    };
-
-    setAssetDoc(asset);
-    setScannedBook(mappedBook);
-    form.setValue("barcode", "", { shouldValidate: false });
-    form.clearErrors("barcode");
-    setQueuedBooks((current) => [...current, buildIssuePreview(mappedBook)]);
+      setScannedBook(mappedBook);
+      form.setValue("barcode", "", { shouldValidate: false });
+      form.clearErrors("barcode");
+      setQueuedBooks((current) => [...current, buildIssuePreview(mappedBook)]);
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setTabAssetLoading(false);
+    }
   };
 
   return (

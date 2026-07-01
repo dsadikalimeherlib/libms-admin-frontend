@@ -402,37 +402,4 @@ export const getAssetByBarcode = async ({
     return message;
 };
 
-export const getAssetDetailFrappe = async (name: string) => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("No token found");
-    const { access_token } = JSON.parse(token);
-
-    const authHeader = `Bearer ${access_token}`;
-    const doctype = "Asset";
-
-    const params = new URLSearchParams({
-        doctype,
-        name,
-        _: Date.now().toString(),
-    });
-
-    const res = await fetch(
-        `https://libms-dev.aakvaerp.com/api/method/frappe.desk.form.load.getdoc?${params.toString()}`,
-        {
-            method: "GET",
-            headers: {
-                Authorization: authHeader,
-                Accept: "application/json",
-                "X-Requested-With": "XMLHttpRequest",
-                "X-Frappe-Doctype": doctype,
-                "X-Frappe-CMD": "",
-            },
-        }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.error || "Failed to fetch asset");
-
-    return data;
-};
+export const validateMemberToIssueBook = async({})
