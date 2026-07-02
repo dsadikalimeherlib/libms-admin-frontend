@@ -326,6 +326,8 @@ export type AssetByBarcodeMessage = {
     authors: string[];
     languages: string[];
     total_due_charges?: number;
+    transactionDate?: string;
+    dueDate?: string;
     member_details: {
         member: string;
         name: number;
@@ -402,4 +404,34 @@ export const getAssetByBarcode = async ({
     return message;
 };
 
-export const validateMemberToIssueBook = async({})
+export const validateMemberToIssueBook = async ({
+    member,
+}: {
+    member: string;
+}) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("No token found");
+    const { access_token } = JSON.parse(token);
+
+    const body = new URLSearchParams({
+        member: member,
+    });
+
+    const res = await fetch("https://libms-dev.aakvaerp.com/api/method/book_allowed_issue.allowed_book", {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${access_token}`,
+            Accept: "application/json",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "X-Requested-With": "XMLHttpRequest",
+            "X-Frappe-CMD": "",
+        },
+        body: body.toString(),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.message || data.error || "Failed to validate member for issue");
+
+    return data;
+};

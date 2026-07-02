@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { addDays } from "date-fns";
+import { addDays, addMonths, format } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -18,7 +18,7 @@ import {
   type Member,
 } from "@/lib/mock-library-api";
 import { getMembers, validateMembers, validateMemberTransaction } from "@/services/members";
-import { getBookTransactionDetails, submitBookIssue, submitBookReturn, submitBookRenew, getAssetByBarcode, type AssetByBarcodeMessage } from "@/services/books";
+import { getBookTransactionDetails, submitBookIssue, submitBookReturn, submitBookRenew, getAssetByBarcode, type AssetByBarcodeMessage, validateMemberToIssueBook } from "@/services/books";
 import { toast } from "react-toastify";
 
 import { IssueTab } from "./IssueTab";
@@ -41,8 +41,8 @@ const buildIssuePreview = (book: Book): IssuePreviewRow => {
   const transactionDate = new Date();
   return {
     ...book,
-    transactionDate: transactionDate.toISOString(),
-    dueDate: addDays(transactionDate, 30).toISOString(),
+    transactionDate: format(transactionDate, 'yyyy-MM-dd'),
+    dueDate: format(addMonths(transactionDate, 1), 'yyyy-MM-dd'),
   };
 };
 
@@ -314,7 +314,24 @@ const TransactionTabs = () => {
         member: member?.name || "",
         transactionType,
       });
-
+      if (activeTab === "issue" || activeTab === "renew") {
+        const allowedData = await validateMemberToIssueBook({
+          member: member?.name || "",
+        })
+        if (allowedData.message.length == 0) {
+          toast.error(allowedData.message);
+          setMember(null);
+          form.setValue("memberQuery", "", { shouldValidate: false });
+          form.setValue("barcode", "", { shouldValidate: false });
+          form.clearErrors();
+          return;
+        }
+      }
+      if (activeTab === "issue") {
+        const tDate = new Date();
+        data.transactionDate = format(tDate, 'yyyy-MM-dd');
+        data.dueDate = format(addMonths(tDate, 1), 'yyyy-MM-dd');
+      }
       setTabAssetData(data);
       setAssetDoc(null);
 
@@ -374,6 +391,8 @@ const TransactionTabs = () => {
           onSubmit={onSubmit}
           assetData={tabAssetData}
           loading={tabAssetLoading}
+          setQueuedBooks={setQueuedBooks}
+          setTabAssetData={setTabAssetData}
         />
       </div>
       <div className={cn(activeTab !== "return" && "hidden", "mt-1")}>

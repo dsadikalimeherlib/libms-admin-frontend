@@ -137,40 +137,41 @@ export const TransactionForm = ({
   return (
     <Form {...form}>
       <div className="space-y-6">
-        <div className="flex gap-6">
-          <div className="flex-1 space-y-4">
-            {/* <div>
+        <div className="flex-1 space-y-4">
+          {/* <div>
               <p className="section-heading">Step 1 · Transaction Types</p>
               <p className="mt-1 text-sm text-muted-foreground">Select transaction types: Issue, Return, Renew</p>
             </div> */}
-            <FormLabel>Transaction type</FormLabel>
-            <Select
-              value={activeTab}
-              onValueChange={(value) => {
-                const tab = value;
-                setActiveTab(tab);
-                setMember(null);
-                setQueuedBooks([]);
-                setScannedBook(null);
-                setAssetDoc(null);
-                setTabAssetData(null);
-                form.clearErrors();
-                form.setValue("memberQuery", "", { shouldValidate: false });
-                form.setValue("barcode", "", { shouldValidate: false });
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select transaction type" />
-              </SelectTrigger>
-              <SelectContent>
-                {tabs.map((tab) => (
-                  <SelectItem key={tab.value} value={tab.value}>
-                    {tab.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <FormLabel>Transaction type</FormLabel>
+          <Select
+            value={activeTab}
+            onValueChange={(value) => {
+              const tab = value;
+              setActiveTab(tab);
+              setMember(null);
+              setQueuedBooks([]);
+              setScannedBook(null);
+              setAssetDoc(null);
+              setTabAssetData(null);
+              form.clearErrors();
+              form.setValue("memberQuery", "", { shouldValidate: false });
+              form.setValue("barcode", "", { shouldValidate: false });
+            }}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select transaction type" />
+            </SelectTrigger>
+            <SelectContent>
+              {tabs.map((tab) => (
+                <SelectItem key={tab.value} value={tab.value}>
+                  {tab.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex gap-6">
+
 
           <section className="space-y-4 flex-1">
             {/* <div className="flex flex-wrap items-center justify-between gap-3">
@@ -200,7 +201,7 @@ export const TransactionForm = ({
                 name="memberQuery"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Member search</FormLabel>
+                    <FormLabel>Member information</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -246,7 +247,7 @@ export const TransactionForm = ({
                 name="barcode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Book barcode</FormLabel>
+                    <FormLabel>Book information</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
