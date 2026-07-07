@@ -13,6 +13,7 @@ export interface IssueTabProps {
   issueMutation: any;
   submitDisabled: boolean;
   onSubmit: () => void;
+  onCancel?: () => void;
   assetData?: TabAssetData | null;
   loading?: boolean;
   setQueuedBooks?: (books: IssuePreviewRow[]) => void;
@@ -36,6 +37,7 @@ export const IssueTab = ({
   issueMutation,
   submitDisabled,
   onSubmit,
+  onCancel,
   assetData,
   loading,
   setQueuedBooks,
@@ -128,17 +130,20 @@ export const IssueTab = ({
       </section>
 
       <div className="">
-        <RootError message={error} />
+        <div className="mb-[10px]">
+          <RootError message={error} />
+        </div>
         <div className="flex justify-end md:ml-auto gap-3">
           <Button>Member Verification</Button>
           <Button
-            type="submit"
+            type="button"
             disabled={disabled}
+            onClick={onSubmit}
           >
             {loading ? <Loader2 className="animate-spin" /> : null}
             Submit Issue
           </Button>
-          <Button>Cancel</Button>
+          <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
         </div>
       </div>
     </div>

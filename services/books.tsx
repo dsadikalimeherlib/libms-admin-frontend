@@ -48,9 +48,11 @@ export const getBookTransactionDetails = async ({
 export const submitBookIssue = async ({
     member,
     queuedBooks,
+    barcode = "",
 }: {
     member: any;
     queuedBooks: any[];
+    barcode?: string;
 }) => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -83,7 +85,7 @@ export const submitBookIssue = async ({
         mobile: member.mobile || "",
         otp_verified: 0,
         issued_book: 0,
-        scan_barcode: "",
+        scan_barcode: barcode,
         create_invoice: 0,
         total_due_charges: 0,
         book_transaction_detail: queuedBooks.map((book, idx) => ({
@@ -391,13 +393,38 @@ export const getAssetByBarcode = async ({
 
     const data = await res.json();
 
-    if (!res.ok) throw new Error(data.message || data.error || "Failed to fetch asset by barcode");
-    if (!data.message) throw new Error("No asset details returned for this barcode");
+    if (!res.ok) throw new Error(
+        typeof data.message === 'string' ? data.message : (data.error || "Failed to fetch asset by barcode")
+    );
 
-    const message = data.message as AssetByBarcodeMessage;
-    // total_due_charges lives on docs[0], not on message — merge it in
+    // The Frappe method returns the book status string (e.g. "Available") as `message`,
+    // while the actual asset details it populated on the doc are in `data.docs[0]`.
+    let message: AssetByBarcodeMessage;
+
+    if (data.message && typeof data.message === 'object') {
+        // Ideal case: message is already the full asset details object
+        message = data.message as AssetByBarcodeMessage;
+    } else {
+        // Common case: message is a status string — extract fields from the returned doc
+        const doc = data.docs?.[0];
+        if (!doc) throw new Error("No asset details returned for this barcode");
+
+        message = {
+            asset_id: doc.scan_barcode || barcode,
+            item_code: doc.item_code || "",
+            asset_name: doc.asset_name || doc.scan_barcode || barcode,
+            status: typeof data.message === 'string' ? data.message : (doc.status || ""),
+            volume: doc.volume || "",
+            authors: doc.authors || [],
+            languages: doc.languages || [],
+            member_details: doc.member_details ?? null,
+            total_due_charges: doc.total_due_charges,
+        };
+    }
+
+    // total_due_charges may also live on docs[0] when message was an object — merge it in
     const totalDueCharges = data.docs?.[0]?.total_due_charges;
-    if (totalDueCharges !== undefined) {
+    if (totalDueCharges !== undefined && message.total_due_charges === undefined) {
         message.total_due_charges = totalDueCharges;
     }
 

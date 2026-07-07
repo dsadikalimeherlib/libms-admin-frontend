@@ -135,3 +135,71 @@ export const validateMemberTransaction = async ({ text = '' }: { text: string })
 
     return data.message;
 }
+
+export const getMemberImage = async ({ docname }: { docname: string }) => {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+        console.error('No token found');
+        return;
+    }
+
+    const { access_token } = JSON.parse(token);
+
+    const res = await fetch(
+        "https://libms-dev.aakvaerp.com/api/method/frappe.client.get_value?doctype=Member&fieldname=photo&filters=" + docname + "&_=" + Date.now(),
+        {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+            },
+        }
+    );
+
+    const data = await res.json();
+
+    if (res.status === 401) {
+        handleUnauthorized();
+        return;
+    }
+
+    if (!res.ok) {
+        throw new Error(data.error || "Failed to get member image");
+    }
+
+    return data.message;
+}
+
+export const getMemberCustomer = async ({ docname }: { docname: string }) => {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+        console.error('No token found');
+        return;
+    }
+
+    const { access_token } = JSON.parse(token);
+
+    const res = await fetch(
+        "https://libms-dev.aakvaerp.com/api/method/frappe.client.get_value?doctype=Member&fieldname=customer&filters=" + docname + "&_=" + Date.now(),
+        {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+            },
+        }
+    );
+
+    const data = await res.json();
+
+    if (res.status === 401) {
+        handleUnauthorized();
+        return;
+    }
+
+    if (!res.ok) {
+        throw new Error(data.error || "Failed to get member customer");
+    }
+
+    return data.message;
+}

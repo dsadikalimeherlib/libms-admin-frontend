@@ -17,7 +17,7 @@ import {
   type IssuePreviewRow,
   type Member,
 } from "@/lib/mock-library-api";
-import { getMembers, validateMembers, validateMemberTransaction } from "@/services/members";
+import { getMembers, getMemberCustomer, validateMembers, validateMemberTransaction } from "@/services/members";
 import { getBookTransactionDetails, submitBookIssue, submitBookReturn, submitBookRenew, getAssetByBarcode, type AssetByBarcodeMessage, validateMemberToIssueBook } from "@/services/books";
 import { toast } from "react-toastify";
 
@@ -143,17 +143,21 @@ const TransactionTabs = () => {
   const [memberSuggestions, setMemberSuggestions] = useState<MemberSuggestion[]>([]);
   const [memberInputFocused, setMemberInputFocused] = useState(false);
   const [dropdownActive, setDropdownActive] = useState(false);
+  const [memberLoading, setMemberLoading] = useState(false);
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const skipNextSearchRef = useRef(false);
   const watchedQuery = form.watch("memberQuery");
 
   const loadMemberSuggestions = async (query: string) => {
+    setMemberLoading(true);
     try {
       const result = (await getMembers({ text: query })) as MemberSuggestion[];
       setMemberSuggestions(result ?? []);
     } catch (error) {
       setMemberSuggestions([]);
+    } finally {
+      setMemberLoading(false);
     }
   };
 
@@ -200,7 +204,7 @@ const TransactionTabs = () => {
   });
 
   const issueMutation = useMutation({
-    mutationFn: () => submitBookIssue({ member: member!, queuedBooks }),
+    mutationFn: () => submitBookIssue({ member: member!, queuedBooks, barcode: form.getValues("barcode") }),
     onSuccess: (result) => {
       setQueuedBooks([]);
       setMember(null);
@@ -282,26 +286,45 @@ const TransactionTabs = () => {
     issueMutation.mutate();
   };
 
-  const handleSuggestionClick = (selectionValue: string) => {
+  const handleCancel = () => {
+    setMember(null);
+    setQueuedBooks([]);
+    setScannedBook(null);
+    setAssetDoc(null);
+    setTabAssetData(null);
+    setMemberSuggestions([]);
+    setDropdownActive(false);
+    form.reset();
+  };
+
+  const handleSuggestionClick = async (selectionValue: string) => {
     skipNextSearchRef.current = true;
     form.setValue("memberQuery", selectionValue, { shouldValidate: false });
     setMemberSuggestions([]);
     setDropdownActive(false);
-    validateMembers({ text: selectionValue }).then((validatedMember) => {
+    setMemberLoading(true);
+    try {
+      const [validatedMember, customerData] = await Promise.all([
+        validateMembers({ text: selectionValue }),
+        getMemberCustomer({ docname: selectionValue }),
+      ]);
       setMember(validatedMember);
-    }).catch((error: Error) => {
-      setMember(null);
-    });
-    if (activeTab !== 'return') {
-      validateMemberTransaction({ text: selectionValue }).then((validatedMember) => {
-        if (validatedMember.valid) {
-          toast.success(`${validatedMember.message}`);
+      if (!customerData?.customer) {
+        toast.warn("This member has no customer assigned.");
+      }
+      if (activeTab !== 'return') {
+        const validatedTransaction = await validateMemberTransaction({ text: selectionValue });
+        if (validatedTransaction.valid) {
+          toast.success(`${validatedTransaction.message}`);
         } else {
-          toast.error(`${validatedMember.message}`);
+          toast.error(`${validatedTransaction.message}`);
         }
-      }).catch((error: Error) => {
-        toast.error(`${error.message}`);
-      });
+      }
+    } catch (error: any) {
+      setMember(null);
+      toast.error(error?.message ?? "Member validation failed.");
+    } finally {
+      setMemberLoading(false);
     }
   };
 
@@ -380,6 +403,7 @@ const TransactionTabs = () => {
         setActiveTab={setActiveTab}
         tabs={tabs}
         setTabAssetData={setTabAssetData}
+        memberLoading={memberLoading}
       />
 
       <div className={cn(activeTab !== "issue" && "hidden", "mt-1")}>
@@ -389,6 +413,7 @@ const TransactionTabs = () => {
           issueMutation={issueMutation}
           submitDisabled={submitDisabled}
           onSubmit={onSubmit}
+          onCancel={handleCancel}
           assetData={tabAssetData}
           loading={tabAssetLoading}
           setQueuedBooks={setQueuedBooks}
