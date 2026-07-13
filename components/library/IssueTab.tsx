@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { format, addMonths } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { UseFormReturn } from "react-hook-form";
-import type { IssuePreviewRow } from "@/lib/mock-library-api";
+import type { IssuePreviewRow, Member } from "@/lib/mock-library-api";
 import { IssueFormValues, TabAssetData, SubmitBar } from "./TransactionTabs";
 import { Button } from "@/components/ui/button";
+import { submitBookIssue, generateOTP } from "@/services/books";
+import { toast } from "react-toastify";
 
 export interface IssueTabProps {
   form: UseFormReturn<IssueFormValues>;
@@ -18,6 +21,8 @@ export interface IssueTabProps {
   loading?: boolean;
   setQueuedBooks?: (books: IssuePreviewRow[]) => void;
   setTabAssetData?: (data: TabAssetData | null) => void;
+  member?: Member | null;
+  setSavedDocName?: (name: string) => void;
 }
 
 const RootError = ({ message }: { message?: string }) =>
@@ -42,7 +47,10 @@ export const IssueTab = ({
   loading,
   setQueuedBooks,
   setTabAssetData,
+  member,
+  setSavedDocName,
 }: IssueTabProps) => {
+  const [verifying, setVerifying] = useState(false);
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDateStr = e.target.value;
     if (!newDateStr) return;
@@ -64,6 +72,48 @@ export const IssueTab = ({
   const error = form.formState.errors.root?.message
   const disabled = submitDisabled
 
+  const handleMemeberVerification = async () => {
+    if (!member) {
+      toast.error("Please select a member before verifying.");
+      return;
+    }
+    if (queuedBooks.length === 0) {
+      toast.error("Add at least one book before verifying.");
+      return;
+    }
+    setVerifying(true);
+    try {
+      // Step 1: Save the transaction (action="Save") to obtain a docname
+      const saved = await submitBookIssue({
+        member,
+        queuedBooks,
+        barcode: form.getValues("barcode"),
+        action: "Save",
+      });
+
+      const docname: string =
+        saved.name ||
+        (saved as any)?.rows?.[0]?.parent ||
+        "";
+
+      if (!docname) {
+        throw new Error("Could not determine document name from saved transaction.");
+      }
+
+      if (setSavedDocName) {
+        setSavedDocName(docname);
+      }
+
+      // Step 2: Generate OTP for the saved document
+      await generateOTP({ docname });
+      toast.success("OTP sent successfully for member verification.");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Member verification failed.");
+    } finally {
+      setVerifying(false);
+    }
+  }
+
 
   return (
     <div className="space-y-6">
@@ -84,7 +134,7 @@ export const IssueTab = ({
             {assetData?.dueDate ? <p className="mt-1 text-sm text-foreground">{format(new Date(assetData.dueDate), 'dd-MM-yyyy')}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
           </div>
         </div>
-        {/* <div className="table-shell">
+        <div className="table-shell">
           <Table>
             <TableHeader>
               <TableRow>
@@ -125,8 +175,8 @@ export const IssueTab = ({
           </Table>
 
 
-          
-        </div> */}
+
+        </div>
       </section>
 
       <div className="">
@@ -134,7 +184,10 @@ export const IssueTab = ({
           <RootError message={error} />
         </div>
         <div className="flex justify-end md:ml-auto gap-3">
-          <Button>Member Verification</Button>
+          <Button onClick={handleMemeberVerification} disabled={verifying || !member || queuedBooks.length === 0}>
+            {verifying ? <Loader2 className="mr-2 animate-spin" /> : null}
+            Member Verification
+          </Button>
           <Button
             type="button"
             disabled={disabled}

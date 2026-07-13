@@ -144,6 +144,7 @@ const TransactionTabs = () => {
   const [memberInputFocused, setMemberInputFocused] = useState(false);
   const [dropdownActive, setDropdownActive] = useState(false);
   const [memberLoading, setMemberLoading] = useState(false);
+  const [savedDocName, setSavedDocName] = useState<string>("");
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const skipNextSearchRef = useRef(false);
@@ -204,10 +205,11 @@ const TransactionTabs = () => {
   });
 
   const issueMutation = useMutation({
-    mutationFn: () => submitBookIssue({ member: member!, queuedBooks, barcode: form.getValues("barcode") }),
+    mutationFn: () => submitBookIssue({ member: member!, queuedBooks, barcode: form.getValues("barcode"), savedDocName }),
     onSuccess: (result) => {
       setQueuedBooks([]);
       setMember(null);
+      setSavedDocName("");
       form.setValue("memberQuery", "", { shouldValidate: false });
       form.setValue("barcode", "", { shouldValidate: false });
       form.clearErrors();
@@ -292,6 +294,7 @@ const TransactionTabs = () => {
     setScannedBook(null);
     setAssetDoc(null);
     setTabAssetData(null);
+    setSavedDocName("");
     setMemberSuggestions([]);
     setDropdownActive(false);
     form.reset();
@@ -418,6 +421,8 @@ const TransactionTabs = () => {
           loading={tabAssetLoading}
           setQueuedBooks={setQueuedBooks}
           setTabAssetData={setTabAssetData}
+          member={member}
+          setSavedDocName={setSavedDocName}
         />
       </div>
       <div className={cn(activeTab !== "return" && "hidden", "mt-1")}>

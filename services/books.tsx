@@ -49,10 +49,14 @@ export const submitBookIssue = async ({
     member,
     queuedBooks,
     barcode = "",
+    action = "Submit",
+    savedDocName,
 }: {
     member: any;
     queuedBooks: any[];
     barcode?: string;
+    action?: string;
+    savedDocName?: string;
 }) => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -70,47 +74,68 @@ export const submitBookIssue = async ({
         return `${year}-${month}-${day}`;
     };
 
-    const tempName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
+    let doc: any;
 
-    const doc = {
-        docstatus: 0,
-        doctype: "Book Transaction",
-        name: tempName,
-        __islocal: 1,
-        __unsaved: 1,
-        transaction_type: "Issue",
-        member: member.name,
-        member_name: member.member_name || member.name,
-        membership_status: member.membership_status || "Active",
-        mobile: member.mobile || "",
-        otp_verified: 0,
-        issued_book: 0,
-        scan_barcode: barcode,
-        create_invoice: 0,
-        total_due_charges: 0,
-        book_transaction_detail: queuedBooks.map((book, idx) => ({
+    if (savedDocName) {
+        const getRes = await fetch(
+            `https://libms-dev.aakvaerp.com/api/method/frappe.client.get?doctype=Book+Transaction&name=${savedDocName}`,
+            {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${access_token}`,
+                    Accept: "application/json",
+                },
+            }
+        );
+        const getData = await getRes.json();
+        
+        if (!getRes.ok) {
+            throw new Error(getData.error || "Failed to fetch existing transaction");
+        }
+        
+        doc = getData.message;
+    } else {
+        const docName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
+        doc = {
             docstatus: 0,
-            doctype: "Book Transaction Detail",
-            name: `new-book-transaction-detail-${Math.random().toString(36).substring(2, 12)}`,
+            doctype: "Book Transaction",
+            name: docName,
             __islocal: 1,
             __unsaved: 1,
-            access_no: book.accessNo,
-            book_title: book.title,
-            author: book.author || "",
-            language: book.language || "",
-            transaction_date: formatDate(book.transactionDate),
-            due_date: formatDate(book.dueDate),
-            status: "Available",
-            parent: tempName,
-            parentfield: "book_transaction_detail",
-            parenttype: "Book Transaction",
-            idx: idx + 1
-        }))
-    };
+            transaction_type: "Issue",
+            member: member.name,
+            member_name: member.member_name || member.name,
+            membership_status: member.membership_status || "Active",
+            mobile: member.mobile || "",
+            otp_verified: 0,
+            issued_book: 0,
+            scan_barcode: barcode,
+            create_invoice: 0,
+            total_due_charges: 0,
+            book_transaction_detail: queuedBooks.map((book, idx) => ({
+                docstatus: 0,
+                doctype: "Book Transaction Detail",
+                name: `new-book-transaction-detail-${Math.random().toString(36).substring(2, 12)}`,
+                __islocal: 1,
+                __unsaved: 1,
+                access_no: book.accessNo,
+                book_title: book.title,
+                author: book.author || "",
+                language: book.language || "",
+                transaction_date: formatDate(book.transactionDate),
+                due_date: formatDate(book.dueDate),
+                status: "Available",
+                parent: docName,
+                parentfield: "book_transaction_detail",
+                parenttype: "Book Transaction",
+                idx: idx + 1
+            }))
+        };
+    }
 
     const params = new URLSearchParams({
         doc: JSON.stringify(doc),
-        action: "Submit",
+        action: action,
     });
 
     const res = await fetch(
@@ -136,6 +161,7 @@ export const submitBookIssue = async ({
     const returnedDoc = data.docs?.[0] || data.message || {};
 
     return {
+        name: data.docinfo?.name || returnedDoc.name || "",
         member: {
             name: returnedDoc.member_name || member.member_name || member.name
         },
@@ -459,6 +485,39 @@ export const validateMemberToIssueBook = async ({
     const data = await res.json();
 
     if (!res.ok) throw new Error(data.message || data.error || "Failed to validate member for issue");
+
+    return data;
+};
+
+export const generateOTP = async ({
+    docname,
+}: {
+    docname: string;
+}) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token found');
+    const { access_token } = JSON.parse(token);
+
+    const body = new URLSearchParams({ docname });
+
+    const res = await fetch(
+        'https://libms-dev.aakvaerp.com/api/method/library_management.library_management.doctype.book_transaction.book_transaction.generate_otp',
+        {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+                Accept: 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-Frappe-CMD': '',
+            },
+            body: body.toString(),
+        }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.message || data.error || 'Failed to generate OTP');
 
     return data;
 };
