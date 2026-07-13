@@ -25,6 +25,8 @@ export type Book = {
   author: string;
   language: string;
   volume: string;
+  location?: string;
+  status?: string;
 };
 
 export type IssuePreviewRow = Book & {

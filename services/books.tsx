@@ -51,13 +51,18 @@ export const submitBookIssue = async ({
     barcode = "",
     action = "Submit",
     savedDocName,
+    otp,
+    otp_verified
 }: {
     member: any;
     queuedBooks: any[];
     barcode?: string;
     action?: string;
     savedDocName?: string;
+    otp?: string;
+    otp_verified?: number;
 }) => {
+
     const token = localStorage.getItem('token');
     if (!token) {
         throw new Error('No token found');
@@ -88,12 +93,16 @@ export const submitBookIssue = async ({
             }
         );
         const getData = await getRes.json();
-        
+
         if (!getRes.ok) {
             throw new Error(getData.error || "Failed to fetch existing transaction");
         }
-        
+
         doc = getData.message;
+        if (otp) {
+            doc.otp = otp;
+            doc.otp_verified = otp_verified;
+        }
     } else {
         const docName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
         doc = {
@@ -107,7 +116,8 @@ export const submitBookIssue = async ({
             member_name: member.member_name || member.name,
             membership_status: member.membership_status || "Active",
             mobile: member.mobile || "",
-            otp_verified: 0,
+            otp: otp || null,
+            otp_verified: otp_verified,
             issued_book: 0,
             scan_barcode: barcode,
             create_invoice: 0,
@@ -165,7 +175,8 @@ export const submitBookIssue = async ({
         member: {
             name: returnedDoc.member_name || member.member_name || member.name
         },
-        rows: returnedDoc.book_transaction_detail || queuedBooks
+        rows: returnedDoc.book_transaction_detail || queuedBooks,
+        otp_verified: returnedDoc.otp_verified
     };
 };
 
@@ -518,6 +529,35 @@ export const generateOTP = async ({
     const data = await res.json();
 
     if (!res.ok) throw new Error(data.message || data.error || 'Failed to generate OTP');
+
+    return data;
+};
+
+export const getBookTransaction = async ({
+    docname,
+}: {
+    docname: string;
+}) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token found');
+    const { access_token } = JSON.parse(token);
+
+    const res = await fetch(
+        `https://libms-dev.aakvaerp.com/api/method/frappe.desk.form.load.getdoc?doctype=Book+Transaction&name=${docname}`,
+        {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+                Accept: "application/json",
+            },
+        }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        throw new Error(data.error || "Failed to fetch transaction details");
+    }
 
     return data;
 };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, ScanLine } from "lucide-react";
+import { Loader2, ScanLine, Camera } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { UseFormReturn } from "react-hook-form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { IssueFormValues, AssetDoc, MemberSuggestion, TabAssetData } from "./TransactionTabs";
 import { getMemberImage } from "@/services/members";
+import { BarcodeScanner } from "./BarcodeScanner";
 
 export const MemberDetails = ({ member }: { member: Member }) => {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -171,6 +172,13 @@ export const TransactionForm = ({
   setTabAssetData,
   memberLoading = false,
 }: TransactionFormProps) => {
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  const handleScanSuccess = (barcode: string) => {
+    form.setValue("barcode", barcode, { shouldValidate: true });
+    getAssetDetailFun(barcode);
+  };
+
   return (
     <Form {...form}>
       <div className="space-y-6">
@@ -246,7 +254,6 @@ export const TransactionForm = ({
                           autoComplete="off"
                           onFocus={() => setMemberInputFocused(true)}
                           onBlur={() => setMemberInputFocused(false)}
-                          disabled={memberLoading}
                         />
                         {memberLoading && (
                           <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
@@ -286,7 +293,7 @@ export const TransactionForm = ({
               <p className="section-heading">Step 3 · Barcode input</p>
               <p className="mt-1 text-sm text-muted-foreground">Manual entry or scanner-ready wedge input supported.</p>
             </div> */}
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-start">
               <FormField
                 control={form.control}
                 name="barcode"
@@ -312,6 +319,15 @@ export const TransactionForm = ({
                   </FormItem>
                 )}
               />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsScannerOpen(true)}
+                className="md:mt-6"
+                title="Scan barcode with camera"
+              >
+                <Camera className="h-4 w-4" />
+              </Button>
               <Button type="button" variant="secondary" onClick={onAddBook} disabled={bookMutation.isPending} className="md:mt-6">
                 {bookMutation.isPending ? <Loader2 className="animate-spin" /> : <ScanLine />}
                 Add book
@@ -324,6 +340,11 @@ export const TransactionForm = ({
 
 
       </div>
+      <BarcodeScanner
+        open={isScannerOpen}
+        onOpenChange={setIsScannerOpen}
+        onScanSuccess={handleScanSuccess}
+      />
     </Form>
   );
 };

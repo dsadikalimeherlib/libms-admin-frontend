@@ -145,6 +145,7 @@ const TransactionTabs = () => {
   const [dropdownActive, setDropdownActive] = useState(false);
   const [memberLoading, setMemberLoading] = useState(false);
   const [savedDocName, setSavedDocName] = useState<string>("");
+  const [otpVerified, setOtpVerified] = useState<boolean>(false);
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const skipNextSearchRef = useRef(false);
@@ -176,6 +177,16 @@ const TransactionTabs = () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [watchedQuery]);
+
+  useEffect(() => {
+    setSavedDocName("");
+    setOtpVerified(false);
+  }, [activeTab]);
+
+  useEffect(() => {
+    setSavedDocName("");
+    setOtpVerified(false);
+  }, [member?.name]);
 
 
 
@@ -210,6 +221,9 @@ const TransactionTabs = () => {
       setQueuedBooks([]);
       setMember(null);
       setSavedDocName("");
+      setOtpVerified(false);
+      setScannedBook(null);
+      setTabAssetData(null);
       form.setValue("memberQuery", "", { shouldValidate: false });
       form.setValue("barcode", "", { shouldValidate: false });
       form.clearErrors();
@@ -247,7 +261,7 @@ const TransactionTabs = () => {
     },
   });
 
-  const submitDisabled = !member || queuedBooks.length === 0 || issueMutation.isPending;
+  const submitDisabled = !member || queuedBooks.length === 0 || issueMutation.isPending || !otpVerified;
 
   const onSubmitReturn = (totalDueCharges: number) => {
     if (!member) { toast.error("Member is required."); return; }
@@ -295,6 +309,7 @@ const TransactionTabs = () => {
     setAssetDoc(null);
     setTabAssetData(null);
     setSavedDocName("");
+    setOtpVerified(false);
     setMemberSuggestions([]);
     setDropdownActive(false);
     form.reset();
@@ -423,6 +438,9 @@ const TransactionTabs = () => {
           setTabAssetData={setTabAssetData}
           member={member}
           setSavedDocName={setSavedDocName}
+          savedDocName={savedDocName}
+          otpVerified={otpVerified}
+          setOtpVerified={setOtpVerified}
         />
       </div>
       <div className={cn(activeTab !== "return" && "hidden", "mt-1")}>

@@ -12,10 +12,12 @@ function CallbackContent() {
 
     useEffect(() => {
         const code = searchParams.get('code');
-        getFrappeToken({ code }).then((data) => {
-            localStorage.setItem('token', JSON.stringify(data));
-            router.replace('/dashboard');
-        });
+        if (code) {
+            getFrappeToken({ code }).then((data) => {
+                localStorage.setItem('token', JSON.stringify(data));
+                router.replace('/dashboard');
+            });
+        }
     }, [searchParams, router]);
 
     return (
