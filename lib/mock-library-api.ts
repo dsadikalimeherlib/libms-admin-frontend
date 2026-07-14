@@ -16,6 +16,7 @@ export type Member = {
   plan: string;
   status: "Active" | "Expired";
   membership_status?: string;
+  due_date?: string;
 };
 
 export type Book = {

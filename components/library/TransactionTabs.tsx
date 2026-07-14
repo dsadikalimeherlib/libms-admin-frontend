@@ -18,7 +18,7 @@ import {
   type Member,
 } from "@/lib/mock-library-api";
 import { getMembers, getMemberCustomer, validateMembers, validateMemberTransaction } from "@/services/members";
-import { getBookTransactionDetails, submitBookIssue, submitBookReturn, submitBookRenew, getAssetByBarcode, type AssetByBarcodeMessage, validateMemberToIssueBook } from "@/services/books";
+import { getBookTransactionDetails, submitBookIssue, submitBookReturn, submitBookRenew, getAssetByBarcode, type AssetByBarcodeMessage, validateMemberToIssueBook, countBooksIssued } from "@/services/books";
 import { toast } from "react-toastify";
 
 import { IssueTab } from "./IssueTab";
@@ -261,7 +261,7 @@ const TransactionTabs = () => {
     },
   });
 
-  const submitDisabled = !member || queuedBooks.length === 0 || issueMutation.isPending || !otpVerified;
+  const submitDisabled = !member || queuedBooks.length === 0 || issueMutation.isPending;
 
   const onSubmitReturn = (totalDueCharges: number) => {
     if (!member) { toast.error("Member is required."); return; }
@@ -330,10 +330,26 @@ const TransactionTabs = () => {
       if (!customerData?.customer) {
         toast.warn("This member has no customer assigned.");
       }
+      if (activeTab === 'issue') {
+        const issuedCountData = await countBooksIssued({ member: selectionValue });
+        const limitData = await validateMemberToIssueBook({ member: selectionValue });
+        const issuedCount = issuedCountData?.message?.count || 0;
+        const limitArray = limitData?.message;
+        const limit = limitArray && limitArray.length > 0 ? Number(limitArray[0]) : 0;
+
+        if (limit <= issuedCount) {
+          toast.error(`Not allowed more than given limit ${limit} books`);
+          setMember(null);
+          form.setValue("memberQuery", "", { shouldValidate: false });
+          setMemberLoading(false);
+          return;
+        }
+      }
       if (activeTab !== 'return') {
         const validatedTransaction = await validateMemberTransaction({ text: selectionValue });
         if (validatedTransaction.valid) {
           toast.success(`${validatedTransaction.message}`);
+          setMember((prev) => prev ? { ...prev, due_date: validatedTransaction.due_date } : null);
         } else {
           toast.error(`${validatedTransaction.message}`);
         }
@@ -355,6 +371,7 @@ const TransactionTabs = () => {
         member: member?.name || "",
         transactionType,
       });
+
       if (activeTab === "issue" || activeTab === "renew") {
         const allowedData = await validateMemberToIssueBook({
           member: member?.name || "",
@@ -371,7 +388,16 @@ const TransactionTabs = () => {
       if (activeTab === "issue") {
         const tDate = new Date();
         data.transactionDate = format(tDate, 'yyyy-MM-dd');
-        data.dueDate = format(addMonths(tDate, 1), 'yyyy-MM-dd');
+        
+        let finalDueDate = format(addMonths(tDate, 1), 'yyyy-MM-dd');
+        if (member?.due_date) {
+            const memberDueDate = new Date(member.due_date);
+            const oneMonthLater = addMonths(tDate, 1);
+            if (memberDueDate < oneMonthLater) {
+                finalDueDate = format(memberDueDate, 'yyyy-MM-dd');
+            }
+        }
+        data.dueDate = finalDueDate;
       }
       setTabAssetData(data);
       setAssetDoc(null);
@@ -393,6 +419,8 @@ const TransactionTabs = () => {
       setQueuedBooks((current) => [...current, buildIssuePreview(mappedBook)]);
     } catch (error: any) {
       toast.error(error.message);
+      form.setValue("barcode", "", { shouldValidate: false });
+      form.clearErrors();
     } finally {
       setTabAssetLoading(false);
     }

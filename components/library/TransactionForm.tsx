@@ -319,16 +319,8 @@ export const TransactionForm = ({
                   </FormItem>
                 )}
               />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsScannerOpen(true)}
-                className="md:mt-6"
-                title="Scan barcode with camera"
-              >
-                <Camera className="h-4 w-4" />
-              </Button>
-              <Button type="button" variant="secondary" onClick={onAddBook} disabled={bookMutation.isPending} className="md:mt-6">
+
+              <Button type="button" variant="secondary" onClick={() => setIsScannerOpen(true)} disabled={bookMutation.isPending} className="md:mt-6">
                 {bookMutation.isPending ? <Loader2 className="animate-spin" /> : <ScanLine />}
                 Add book
               </Button>

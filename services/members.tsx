@@ -100,7 +100,6 @@ export const validateMembers = async ({ text = '' }: { text: string }) => {
 
 export const validateMemberTransaction = async ({ text = '' }: { text: string }) => {
     const token = localStorage.getItem('token');
-    console.log('token111', token);
 
     if (!token) {
         console.error('No token found');

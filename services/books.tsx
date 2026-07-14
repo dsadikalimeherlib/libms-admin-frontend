@@ -440,12 +440,18 @@ export const getAssetByBarcode = async ({
 
     if (data.message && typeof data.message === 'object') {
         // Ideal case: message is already the full asset details object
+
+        if (!data.message.asset_id) {
+            throw new Error("Book is not available");
+        }
         message = data.message as AssetByBarcodeMessage;
     } else {
         // Common case: message is a status string — extract fields from the returned doc
         const doc = data.docs?.[0];
         if (!doc) throw new Error("No asset details returned for this barcode");
-
+        if (!data.message.asset_id) {
+            throw new Error("Book is not available");
+        }
         message = {
             asset_id: doc.scan_barcode || barcode,
             item_code: doc.item_code || "",
@@ -561,3 +567,41 @@ export const getBookTransaction = async ({
 
     return data;
 };
+
+// https://libms-dev.aakvaerp.com/api/method/library_management.library_management.doctype.book_reservation.book_reservation.count_books_issued
+
+export const countBooksIssued = async ({
+    member
+
+}: {
+    member: string;
+}) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token found');
+    const { access_token } = JSON.parse(token);
+
+    const body = new URLSearchParams({
+        member
+    });
+
+    const res = await fetch(
+        'https://libms-dev.aakvaerp.com/api/method/library_management.library_management.doctype.book_reservation.book_reservation.count_books_issued',
+        {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+                Accept: 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-Frappe-CMD': '',
+            },
+            body: body.toString(),
+        }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.message || data.error || 'Failed to count books issued');
+
+    return data;
+}
