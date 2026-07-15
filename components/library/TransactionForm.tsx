@@ -182,7 +182,7 @@ export const TransactionForm = ({
   return (
     <Form {...form}>
       <div className="space-y-6">
-        <div className="flex-1 space-y-4">
+        <div className="flex-1 space-y-4 max-w-[200px]">
           {/* <div>
               <p className="section-heading">Step 1 · Transaction Types</p>
               <p className="mt-1 text-sm text-muted-foreground">Select transaction types: Issue, Return, Renew</p>
