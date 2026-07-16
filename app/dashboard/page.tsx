@@ -40,22 +40,7 @@ const Dashboard = () => {
         queryFn: getDashboardMetrics,
     });
 
-    const getUser = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            console.error('No token found');
-            return;
-        }
 
-        const { access_token } = JSON.parse(token);
-        fetch("/api/users", {
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-            },
-        })
-            .then(res => res.json())
-            .then(data => console.log(data));
-    }
 
     return (
         <MainLayout>

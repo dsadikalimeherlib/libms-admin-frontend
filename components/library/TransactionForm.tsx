@@ -32,7 +32,7 @@ export const MemberDetails = ({ member }: { member: Member }) => {
         {photoUrl && (
           <div className="h-60 w-60 shrink-0 overflow-hidden bg-muted flex items-center justify-center border rounded-md">
             <img
-              src={`https://libms-dev.aakvaerp.com${photoUrl}`}
+              src={`${process.env.NEXT_PUBLIC_API_URL}${photoUrl}`}
               alt={member.member_name}
               className="h-full w-full object-cover"
             />

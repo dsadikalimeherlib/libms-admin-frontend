@@ -58,7 +58,7 @@ export default function Home() {
 
   const login = () => {
     window.location.href =
-      "https://libms-dev.aakvaerp.com/api/method/frappe.integrations.oauth2.authorize" +
+      `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.integrations.oauth2.authorize` +
       "?client_id=imdsp6muko" +
       "&redirect_uri=http://localhost:3000/callback" +
       "&response_type=code" +

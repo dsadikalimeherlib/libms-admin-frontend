@@ -2,7 +2,7 @@
 const handleUnauthorized = () => {
     localStorage.removeItem("token");
     window.location.href =
-        "https://libms-dev.aakvaerp.com/api/method/frappe.integrations.oauth2.authorize" +
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.integrations.oauth2.authorize` +
         "?client_id=imdsp6muko" +
         "&redirect_uri=http://localhost:3000/callback" +
         "&response_type=code" +
@@ -19,7 +19,7 @@ export const getMembers = async ({ text = '' }: { text: string }) => {
     const { access_token } = JSON.parse(token);
 
     const res = await fetch(
-        "https://libms-dev.aakvaerp.com/api/method/frappe.desk.search.search_link",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.search.search_link`,
         {
             method: "POST",
             headers: {
@@ -62,7 +62,7 @@ export const validateMembers = async ({ text = '' }: { text: string }) => {
     const { access_token } = JSON.parse(token);
 
     const res = await fetch(
-        "https://libms-dev.aakvaerp.com/api/method/frappe.client.validate_link",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.validate_link`,
         {
             method: "POST",
             headers: {
@@ -109,7 +109,7 @@ export const validateMemberTransaction = async ({ text = '' }: { text: string })
     const { access_token } = JSON.parse(token);
 
     const res = await fetch(
-        "https://libms-dev.aakvaerp.com/api/method/library_management.library_management.doctype.book_transaction.book_transaction.membership_validate",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/library_management.library_management.doctype.book_transaction.book_transaction.membership_validate`,
         {
             method: "POST",
             headers: {
@@ -146,7 +146,7 @@ export const getMemberImage = async ({ docname }: { docname: string }) => {
     const { access_token } = JSON.parse(token);
 
     const res = await fetch(
-        "https://libms-dev.aakvaerp.com/api/method/frappe.client.get_value?doctype=Member&fieldname=photo&filters=" + docname + "&_=" + Date.now(),
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.get_value?doctype=Member&fieldname=photo&filters=` + docname + "&_=" + Date.now(),
         {
             method: "GET",
             headers: {
@@ -180,7 +180,7 @@ export const getMemberCustomer = async ({ docname }: { docname: string }) => {
     const { access_token } = JSON.parse(token);
 
     const res = await fetch(
-        "https://libms-dev.aakvaerp.com/api/method/frappe.client.get_value?doctype=Member&fieldname=customer&filters=" + docname + "&_=" + Date.now(),
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.get_value?doctype=Member&fieldname=customer&filters=` + docname + "&_=" + Date.now(),
         {
             method: "GET",
             headers: {
@@ -198,6 +198,40 @@ export const getMemberCustomer = async ({ docname }: { docname: string }) => {
 
     if (!res.ok) {
         throw new Error(data.error || "Failed to get member customer");
+    }
+
+    return data.message;
+}
+
+export const validateUserRoles = async () => {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+        console.error('No token found');
+        return;
+    }
+
+    const { access_token } = JSON.parse(token);
+
+    const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/library_management.api.api.validate_user_roles`,
+        {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+            },
+        }
+    );
+
+    const data = await res.json();
+
+    if (res.status === 401) {
+        handleUnauthorized();
+        return;
+    }
+
+    if (!res.ok) {
+        throw new Error(data.error || "Failed to validate user roles");
     }
 
     return data.message;

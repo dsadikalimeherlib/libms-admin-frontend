@@ -1,6 +1,6 @@
 export const getFrappeToken = async ({ code }: { code: string }) => {
     const response = await fetch(
-        'https://libms-dev.aakvaerp.com/api/method/frappe.integrations.oauth2.get_token',
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.integrations.oauth2.get_token`,
         {
             method: 'POST',
             headers: {

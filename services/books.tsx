@@ -83,7 +83,7 @@ export const submitBookIssue = async ({
 
     if (savedDocName) {
         const getRes = await fetch(
-            `https://libms-dev.aakvaerp.com/api/method/frappe.client.get?doctype=Book+Transaction&name=${savedDocName}`,
+            `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.get?doctype=Book+Transaction&name=${savedDocName}`,
             {
                 method: "GET",
                 headers: {
@@ -149,7 +149,7 @@ export const submitBookIssue = async ({
     });
 
     const res = await fetch(
-        "https://libms-dev.aakvaerp.com/api/method/frappe.desk.form.save.savedocs",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.form.save.savedocs`,
         {
             method: "POST",
             headers: {
@@ -249,7 +249,7 @@ export const submitBookReturn = async ({
     });
 
     const res = await fetch(
-        "https://libms-dev.aakvaerp.com/api/method/frappe.desk.form.save.savedocs",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.form.save.savedocs`,
         {
             method: "POST",
             headers: {
@@ -338,7 +338,7 @@ export const submitBookRenew = async ({
     });
 
     const res = await fetch(
-        "https://libms-dev.aakvaerp.com/api/method/frappe.desk.form.save.savedocs",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.form.save.savedocs`,
         {
             method: "POST",
             headers: {
@@ -416,7 +416,7 @@ export const getAssetByBarcode = async ({
         args: JSON.stringify({ self: selfDoc }),
     });
 
-    const res = await fetch("https://libms-dev.aakvaerp.com/api/method/run_doc_method", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/method/run_doc_method`, {
         method: "POST",
         headers: {
             Authorization: `Bearer ${access_token}`,
@@ -487,7 +487,7 @@ export const validateMemberToIssueBook = async ({
         member: member,
     });
 
-    const res = await fetch("https://libms-dev.aakvaerp.com/api/method/book_allowed_issue.allowed_book", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/method/book_allowed_issue.allowed_book`, {
         method: "POST",
         headers: {
             Authorization: `Bearer ${access_token}`,
@@ -518,7 +518,7 @@ export const generateOTP = async ({
     const body = new URLSearchParams({ docname });
 
     const res = await fetch(
-        'https://libms-dev.aakvaerp.com/api/method/library_management.library_management.doctype.book_transaction.book_transaction.generate_otp',
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/library_management.library_management.doctype.book_transaction.book_transaction.generate_otp`,
         {
             method: 'POST',
             headers: {
@@ -549,7 +549,7 @@ export const getBookTransaction = async ({
     const { access_token } = JSON.parse(token);
 
     const res = await fetch(
-        `https://libms-dev.aakvaerp.com/api/method/frappe.desk.form.load.getdoc?doctype=Book+Transaction&name=${docname}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.form.load.getdoc?doctype=Book+Transaction&name=${docname}`,
         {
             method: "GET",
             headers: {
@@ -568,7 +568,6 @@ export const getBookTransaction = async ({
     return data;
 };
 
-// https://libms-dev.aakvaerp.com/api/method/library_management.library_management.doctype.book_reservation.book_reservation.count_books_issued
 
 export const countBooksIssued = async ({
     member
@@ -585,7 +584,7 @@ export const countBooksIssued = async ({
     });
 
     const res = await fetch(
-        'https://libms-dev.aakvaerp.com/api/method/library_management.library_management.doctype.book_reservation.book_reservation.count_books_issued',
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/library_management.library_management.doctype.book_reservation.book_reservation.count_books_issued`,
         {
             method: 'POST',
             headers: {
