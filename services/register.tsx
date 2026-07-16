@@ -12,7 +12,7 @@ export const getFrappeToken = async ({ code }: { code: string }) => {
                 code,
                 client_id: 'imdsp6muko',
                 client_secret: '2a6bf3c6bc',
-                redirect_uri: 'http://localhost:3000/callback',
+                redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/callback`,
             }),
         }
     );

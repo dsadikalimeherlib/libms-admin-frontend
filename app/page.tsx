@@ -60,7 +60,7 @@ export default function Home() {
     window.location.href =
       `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.integrations.oauth2.authorize` +
       "?client_id=imdsp6muko" +
-      "&redirect_uri=http://localhost:3000/callback" +
+      `&redirect_uri=${process.env.NEXT_PUBLIC_APP_URL}/callback` +
       "&response_type=code" +
       "&scope=all";
   };
