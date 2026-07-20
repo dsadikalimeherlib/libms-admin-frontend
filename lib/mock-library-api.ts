@@ -17,6 +17,7 @@ export type Member = {
   status: "Active" | "Expired";
   membership_status?: string;
   due_date?: string;
+  is_valid_membership?: boolean;
 };
 
 export type Book = {

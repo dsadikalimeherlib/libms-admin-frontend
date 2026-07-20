@@ -349,9 +349,10 @@ const TransactionTabs = () => {
         const validatedTransaction = await validateMemberTransaction({ text: selectionValue });
         if (validatedTransaction.valid) {
           toast.success(`${validatedTransaction.message}`);
-          setMember((prev) => prev ? { ...prev, due_date: validatedTransaction.due_date } : null);
+          setMember((prev) => prev ? { ...prev, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
         } else {
           toast.error(`${validatedTransaction.message}`);
+          setMember((prev) => prev ? { ...prev, is_valid_membership: false } : null);
         }
       }
     } catch (error: any) {
@@ -371,6 +372,15 @@ const TransactionTabs = () => {
         member: member?.name || "",
         transactionType,
       });
+
+      const memberQueryValue = form.getValues("memberQuery");
+      if (activeTab === "return" && !memberQueryValue && data.member_details?.member) {
+        const memberId = data.member_details.member;
+        form.setValue("memberQuery", memberId, { shouldValidate: false });
+        const validatedMember = await validateMembers({ text: memberId });
+        await validateMemberToIssueBook({ member: memberId });
+        setMember(validatedMember);
+      }
 
       if (activeTab === "issue" || activeTab === "renew") {
         const allowedData = await validateMemberToIssueBook({

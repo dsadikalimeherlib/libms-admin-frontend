@@ -209,7 +209,7 @@ export const IssueTab = ({
           </div>
           <div>
             <p className="section-heading">Due Date</p>
-            {assetData?.dueDate ? <p className="mt-1 text-sm text-foreground">{format(new Date(assetData.dueDate), 'dd-MM-yyyy')}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+            {assetData?.dueDate ? <p className="mt-1 text-sm text-foreground">{format(new Date(assetData.dueDate), 'dd/MM/yyyy')}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
           </div>
         </div>
         <div className="table-shell">

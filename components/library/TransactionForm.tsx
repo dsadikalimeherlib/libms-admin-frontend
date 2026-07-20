@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { IssueFormValues, AssetDoc, MemberSuggestion, TabAssetData } from "./TransactionTabs";
 import { getMemberImage } from "@/services/members";
 import { BarcodeScanner } from "./BarcodeScanner";
+import { toast } from "react-toastify";
 
 export const MemberDetails = ({ member }: { member: Member }) => {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -303,14 +304,32 @@ export const TransactionForm = ({
                     <FormControl>
                       <Input
                         {...field}
+                        onChange={(e) => {
+                          if (activeTab === "issue") {
+                            if (!member || member.is_valid_membership === false) {
+                              const msg = !member ? "Please enter Member ID before barcode scan " : "Membership is not valid";
+                              toast.error(msg, { toastId: "barcode-err" });
+                              return;
+                            }
+                          }
+                          form.clearErrors("barcode");
+                          field.onChange(e);
+                        }}
                         placeholder="Scan or type barcode"
                         autoComplete="off"
                         onKeyDown={(event) => {
+                          if (activeTab === "issue") {
+                            if (!member || member.is_valid_membership === false) {
+                              event.preventDefault();
+                              const msg = !member ? "Please enter Member ID before barcode scan " : "Membership is not valid";
+                              toast.error(msg, { toastId: "barcode-err" });
+                              return;
+                            }
+                          }
                           if (event.key === "Enter") {
                             event.preventDefault();
                             // void onAddBook();
                             getAssetDetailFun(field.value);
-
                           }
                         }}
                       />
