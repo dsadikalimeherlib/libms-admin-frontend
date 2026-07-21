@@ -98,8 +98,6 @@ export const SubmitBar = ({
       <Button
         type={onClick ? "button" : "submit"}
         onClick={onClick}
-        variant="panel"
-        size="lg"
         disabled={disabled}
         className="min-w-40"
       >
@@ -236,7 +234,7 @@ const TransactionTabs = () => {
   });
 
   const returnMutation = useMutation({
-    mutationFn: (totalDueCharges: number) => submitBookReturn({ member: member!, assetData: tabAssetData!, totalDueCharges }),
+    mutationFn: ({totalDueCharges, createInvoice}: {totalDueCharges: number, createInvoice: number}) => submitBookReturn({ member: member!, assetData: tabAssetData!, totalDueCharges, createInvoice }),
     onSuccess: () => {
       setTabAssetData(null);
       setScannedBook(null);
@@ -263,10 +261,10 @@ const TransactionTabs = () => {
 
   const submitDisabled = !member || queuedBooks.length === 0 || issueMutation.isPending;
 
-  const onSubmitReturn = (totalDueCharges: number) => {
+  const onSubmitReturn = (totalDueCharges: number, createInvoice: number) => {
     if (!member) { toast.error("Member is required."); return; }
     if (!tabAssetData?.member_details) { toast.error("Scan a barcode to load transaction details."); return; }
-    returnMutation.mutate(totalDueCharges);
+    returnMutation.mutate({totalDueCharges, createInvoice});
   };
 
   const onSubmitRenew = (totalDueCharges: number) => {
@@ -398,14 +396,14 @@ const TransactionTabs = () => {
       if (activeTab === "issue") {
         const tDate = new Date();
         data.transactionDate = format(tDate, 'yyyy-MM-dd');
-        
+
         let finalDueDate = format(addMonths(tDate, 1), 'yyyy-MM-dd');
         if (member?.due_date) {
-            const memberDueDate = new Date(member.due_date);
-            const oneMonthLater = addMonths(tDate, 1);
-            if (memberDueDate < oneMonthLater) {
-                finalDueDate = format(memberDueDate, 'yyyy-MM-dd');
-            }
+          const memberDueDate = new Date(member.due_date);
+          const oneMonthLater = addMonths(tDate, 1);
+          if (memberDueDate < oneMonthLater) {
+            finalDueDate = format(memberDueDate, 'yyyy-MM-dd');
+          }
         }
         data.dueDate = finalDueDate;
       }

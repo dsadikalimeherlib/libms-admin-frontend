@@ -184,10 +184,12 @@ export const submitBookReturn = async ({
     member,
     assetData,
     totalDueCharges = 0,
+    createInvoice = 0,
 }: {
     member: any;
     assetData: AssetByBarcodeMessage;
     totalDueCharges?: number;
+    createInvoice?: number;
 }) => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('No token found');
@@ -217,7 +219,7 @@ export const submitBookReturn = async ({
         mobile: member.mobile || "",
         otp_verified: 0,
         scan_barcode: "",
-        create_invoice: 0,
+        create_invoice: createInvoice,
         total_due_charges: totalDueCharges,
         book_transaction_detail: [],
         renew_book_details: [],

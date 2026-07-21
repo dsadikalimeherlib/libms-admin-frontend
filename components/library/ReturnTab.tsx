@@ -14,11 +14,12 @@ export const ReturnTab = ({
   assetData?: TabAssetData | null;
   loading?: boolean;
   returnMutation: any;
-  onSubmitReturn: (totalDueCharges: number) => void;
+  onSubmitReturn: (totalDueCharges: number, createInvoice: number) => void;
 }) => {
   const md = assetData?.member_details;
   const submitDisabled = !assetData || !md || returnMutation.isPending;
   const [totalDueCharges, setTotalDueCharges] = useState(0);
+  const [createInvoice, setCreateInvoice] = useState(1);
 
   useEffect(() => {
     setTotalDueCharges(assetData?.total_due_charges || 0);
@@ -78,11 +79,21 @@ export const ReturnTab = ({
           className="w-32"
         />
       </div>
+      <div className="flex items-center justify-end gap-2 py-4 md:ml-auto">
+        <input
+          type="checkbox"
+          id="createInvoiceCheckbox"
+          checked={createInvoice === 1}
+          onChange={(e) => setCreateInvoice(e.target.checked ? 1 : 0)}
+          className="h-4 w-4"
+        />
+        <label htmlFor="createInvoiceCheckbox" className="text-sm font-medium">Create Invoice</label>
+      </div>
       <SubmitBar
         disabled={submitDisabled}
         loading={returnMutation.isPending}
         label="Submit Return"
-        onClick={() => onSubmitReturn(totalDueCharges)}
+        onClick={() => onSubmitReturn(totalDueCharges, createInvoice)}
       />
     </div>
   );
