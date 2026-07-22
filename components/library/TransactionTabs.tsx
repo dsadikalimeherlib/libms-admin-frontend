@@ -467,7 +467,7 @@ const TransactionTabs = () => {
         memberLoading={memberLoading}
       />
 
-      <div className={cn(activeTab !== "issue" || activeTab !== "issue" && "hidden", "mt-1")}>
+      <div className={cn(activeTab !== "issue" && "hidden", "mt-1")}>
         <IssueTab
           form={form}
           queuedBooks={queuedBooks}
