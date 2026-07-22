@@ -234,7 +234,7 @@ const TransactionTabs = () => {
   });
 
   const returnMutation = useMutation({
-    mutationFn: ({totalDueCharges, createInvoice}: {totalDueCharges: number, createInvoice: number}) => submitBookReturn({ member: member!, assetData: tabAssetData!, totalDueCharges, createInvoice }),
+    mutationFn: ({ totalDueCharges, createInvoice }: { totalDueCharges: number, createInvoice: number }) => submitBookReturn({ member: member!, assetData: tabAssetData!, totalDueCharges, createInvoice }),
     onSuccess: () => {
       setTabAssetData(null);
       setScannedBook(null);
@@ -264,7 +264,7 @@ const TransactionTabs = () => {
   const onSubmitReturn = (totalDueCharges: number, createInvoice: number) => {
     if (!member) { toast.error("Member is required."); return; }
     if (!tabAssetData?.member_details) { toast.error("Scan a barcode to load transaction details."); return; }
-    returnMutation.mutate({totalDueCharges, createInvoice});
+    returnMutation.mutate({ totalDueCharges, createInvoice });
   };
 
   const onSubmitRenew = (totalDueCharges: number) => {
@@ -371,6 +371,13 @@ const TransactionTabs = () => {
         transactionType,
       });
 
+      if (activeTab === "return" && member?.name && data.member_details?.member && member.name !== data.member_details.member) {
+        toast.error("This book does not belong to the same member.");
+        form.setValue("barcode", "", { shouldValidate: false });
+        form.clearErrors("barcode");
+        return;
+      }
+
       const memberQueryValue = form.getValues("memberQuery");
       if (activeTab === "return" && !memberQueryValue && data.member_details?.member) {
         const memberId = data.member_details.member;
@@ -460,7 +467,7 @@ const TransactionTabs = () => {
         memberLoading={memberLoading}
       />
 
-      <div className={cn(activeTab !== "issue" && "hidden", "mt-1")}>
+      <div className={cn(activeTab !== "issue" || activeTab !== "issue" && "hidden", "mt-1")}>
         <IssueTab
           form={form}
           queuedBooks={queuedBooks}
