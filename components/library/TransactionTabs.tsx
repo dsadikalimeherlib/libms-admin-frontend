@@ -8,6 +8,19 @@ import { z } from "zod";
 
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
   cn,
@@ -85,16 +98,45 @@ export const SubmitBar = ({
   loading,
   label,
   onClick,
+  onCancel,
+  onGenerateOTP,
+  onVerifyOTP,
+  verifying,
+  otpVerified,
+  disableGenerateOTP,
+  disableVerifyOTP,
 }: {
   error?: string;
   disabled: boolean;
   loading: boolean;
   label: string;
   onClick?: () => void;
+  onCancel?: () => void;
+  onGenerateOTP?: () => void;
+  onVerifyOTP?: () => void;
+  verifying?: boolean;
+  otpVerified?: boolean;
+  disableGenerateOTP?: boolean;
+  disableVerifyOTP?: boolean;
 }) => (
   <div className="">
     <RootError message={error} />
-    <div className="flex justify-end md:ml-auto">
+    <div className="flex justify-end gap-3 md:ml-auto">
+      {onGenerateOTP && (
+        <Button onClick={onGenerateOTP} disabled={disableGenerateOTP || verifying}>
+          {verifying ? <Loader2 className="mr-2 animate-spin" /> : null}
+          Generate OTP
+        </Button>
+      )}
+      {onVerifyOTP && (
+        <Button
+          type="button"
+          onClick={onVerifyOTP}
+          disabled={disableVerifyOTP || verifying || loading || otpVerified}
+        >
+          {otpVerified ? "OTP Verified" : "Verify OTP"}
+        </Button>
+      )}
       <Button
         type={onClick ? "button" : "submit"}
         onClick={onClick}
@@ -104,8 +146,79 @@ export const SubmitBar = ({
         {loading ? <Loader2 className="animate-spin" /> : null}
         {label}
       </Button>
+      {onCancel && (
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+      )}
     </div>
   </div>
+);
+
+export const OtpVerificationDialog = ({
+  open,
+  onOpenChange,
+  memberMobile,
+  otpValue,
+  setOtpValue,
+  otpVerifying,
+  onVerify,
+  onCancel,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  memberMobile?: string;
+  otpValue: string;
+  setOtpValue: (val: string) => void;
+  otpVerifying: boolean;
+  onVerify: () => void;
+  onCancel: () => void;
+}) => (
+  <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogContent className="sm:max-w-[425px]">
+      <DialogHeader>
+        <DialogTitle>Verify OTP</DialogTitle>
+        <DialogDescription>
+          Enter the 6-digit OTP sent to the member's mobile number ({memberMobile || "N/A"}) to verify the transaction.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="flex flex-col items-center justify-center py-4 space-y-4">
+        <InputOTP
+          maxLength={6}
+          value={otpValue}
+          onChange={setOtpValue}
+          disabled={otpVerifying}
+        >
+          <InputOTPGroup>
+            <InputOTPSlot index={0} />
+            <InputOTPSlot index={1} />
+            <InputOTPSlot index={2} />
+            <InputOTPSlot index={3} />
+            <InputOTPSlot index={4} />
+            <InputOTPSlot index={5} />
+          </InputOTPGroup>
+        </InputOTP>
+      </div>
+      <DialogFooter>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={otpVerifying}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          onClick={onVerify}
+          disabled={otpValue.length !== 6 || otpVerifying}
+        >
+          {otpVerifying ? <Loader2 className="mr-2 animate-spin" /> : null}
+          Verify
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 );
 
 
@@ -137,6 +250,7 @@ const TransactionTabs = () => {
   const [scannedBook, setScannedBook] = useState<Book | null>(null);
   const [assetDoc, setAssetDoc] = useState<AssetDoc | null>(null);
   const [tabAssetData, setTabAssetData] = useState<TabAssetData | null>(null);
+  const [queuedAssets, setQueuedAssets] = useState<AssetByBarcodeMessage[]>([]);
   const [tabAssetLoading, setTabAssetLoading] = useState(false);
   const [memberSuggestions, setMemberSuggestions] = useState<MemberSuggestion[]>([]);
   const [memberInputFocused, setMemberInputFocused] = useState(false);
@@ -234,11 +348,12 @@ const TransactionTabs = () => {
   });
 
   const returnMutation = useMutation({
-    mutationFn: ({ totalDueCharges, createInvoice }: { totalDueCharges: number, createInvoice: number }) => submitBookReturn({ member: member!, assetData: tabAssetData!, totalDueCharges, createInvoice }),
+    mutationFn: ({ totalDueCharges, createInvoice }: { totalDueCharges: number, createInvoice: number }) => submitBookReturn({ member: member!, queuedAssets, totalDueCharges, createInvoice }),
     onSuccess: () => {
       setTabAssetData(null);
+      setQueuedAssets([]);
       setScannedBook(null);
-      toast.success("Book returned successfully.");
+      toast.success("Book(s) returned successfully.");
       queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
     },
     onError: (error: Error) => {
@@ -263,7 +378,7 @@ const TransactionTabs = () => {
 
   const onSubmitReturn = (totalDueCharges: number, createInvoice: number) => {
     if (!member) { toast.error("Member is required."); return; }
-    if (!tabAssetData?.member_details) { toast.error("Scan a barcode to load transaction details."); return; }
+    if (queuedAssets.length === 0) { toast.error("Scan a barcode to load transaction details."); return; }
     returnMutation.mutate({ totalDueCharges, createInvoice });
   };
 
@@ -306,6 +421,7 @@ const TransactionTabs = () => {
     setScannedBook(null);
     setAssetDoc(null);
     setTabAssetData(null);
+    setQueuedAssets([]);
     setSavedDocName("");
     setOtpVerified(false);
     setMemberSuggestions([]);
@@ -415,6 +531,7 @@ const TransactionTabs = () => {
         data.dueDate = finalDueDate;
       }
       setTabAssetData(data);
+      setQueuedAssets((current) => [...current, data]);
       setAssetDoc(null);
 
       const mappedBook: Book = {
@@ -487,7 +604,17 @@ const TransactionTabs = () => {
         />
       </div>
       <div className={cn(activeTab !== "return" && "hidden", "mt-1")}>
-        <ReturnTab assetData={tabAssetData} loading={tabAssetLoading} returnMutation={returnMutation} onSubmitReturn={onSubmitReturn} />
+        <ReturnTab 
+          queuedAssets={queuedAssets} 
+          loading={tabAssetLoading} 
+          returnMutation={returnMutation} 
+          onSubmitReturn={onSubmitReturn}
+          member={member}
+          savedDocName={savedDocName}
+          setSavedDocName={setSavedDocName}
+          otpVerified={otpVerified}
+          setOtpVerified={setOtpVerified}
+        />
       </div>
       <div className={cn(activeTab !== "renew" && "hidden", "mt-1")}>
         <RenewTab assetData={tabAssetData} loading={tabAssetLoading} renewMutation={renewMutation} onSubmitRenew={onSubmitRenew} />

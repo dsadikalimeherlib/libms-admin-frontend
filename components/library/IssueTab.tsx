@@ -5,23 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { UseFormReturn } from "react-hook-form";
 import type { IssuePreviewRow, Member } from "@/lib/mock-library-api";
-import { IssueFormValues, TabAssetData, SubmitBar } from "./TransactionTabs";
+import { IssueFormValues, TabAssetData, SubmitBar, OtpVerificationDialog } from "./TransactionTabs";
 import { Button } from "@/components/ui/button";
 import { submitBookIssue, generateOTP, getBookTransaction } from "@/services/books";
 import { toast } from "react-toastify";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
 
 export interface IssueTabProps {
   form: UseFormReturn<IssueFormValues>;
@@ -257,79 +244,31 @@ export const IssueTab = ({
         </div>
       </section>
 
-      <div className="">
-        <div className="mb-[10px]">
-          <RootError message={error} />
-        </div>
-        <div className="flex justify-end md:ml-auto gap-3">
-          <Button onClick={handleMemeberVerification} disabled={verifying || !member || queuedBooks.length === 0}>
-            {verifying ? <Loader2 className="mr-2 animate-spin" /> : null}
-            Generate OTP
-          </Button>
-          <Button
-            type="button"
-            onClick={() => setOtpDialogOpen(true)}
-            disabled={!savedDocName || verifying || loading || otpVerified}
-          >
-            {otpVerified ? "OTP Verified" : "Verify OTP"}
-          </Button>
-          <Button
-            type="button"
-            disabled={disabled}
-            onClick={onSubmit}
-          >
-            {loading ? <Loader2 className="animate-spin" /> : null}
-            Submit Issue
-          </Button>
-          <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-        </div>
-      </div>
+      <SubmitBar
+        error={error}
+        disabled={disabled}
+        loading={!!loading}
+        label="Submit Issue"
+        onClick={onSubmit}
+        onCancel={onCancel}
+        onGenerateOTP={handleMemeberVerification}
+        onVerifyOTP={() => setOtpDialogOpen(true)}
+        verifying={verifying}
+        otpVerified={otpVerified}
+        disableGenerateOTP={!member || queuedBooks.length === 0}
+        disableVerifyOTP={!savedDocName}
+      />
 
-      <Dialog open={otpDialogOpen} onOpenChange={setOtpDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Verify OTP</DialogTitle>
-            <DialogDescription>
-              Enter the 6-digit OTP sent to the member's mobile number ({member?.mobile || "N/A"}) to verify the transaction.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center justify-center py-4 space-y-4">
-            <InputOTP
-              maxLength={6}
-              value={otpValue}
-              onChange={setOtpValue}
-              disabled={otpVerifying}
-            >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOtpDialogOpen(false)}
-              disabled={otpVerifying}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={handleOtpVerify}
-              disabled={otpValue.length !== 6 || otpVerifying}
-            >
-              {otpVerifying ? <Loader2 className="mr-2 animate-spin" /> : null}
-              Verify
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <OtpVerificationDialog
+        open={otpDialogOpen}
+        onOpenChange={setOtpDialogOpen}
+        memberMobile={member?.mobile}
+        otpValue={otpValue}
+        setOtpValue={setOtpValue}
+        otpVerifying={otpVerifying}
+        onVerify={handleOtpVerify}
+        onCancel={() => setOtpDialogOpen(false)}
+      />
     </div>
   );
 };

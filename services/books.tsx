@@ -182,14 +182,22 @@ export const submitBookIssue = async ({
 
 export const submitBookReturn = async ({
     member,
-    assetData,
+    queuedAssets,
     totalDueCharges = 0,
     createInvoice = 0,
+    action = "Submit",
+    savedDocName,
+    otp,
+    otp_verified
 }: {
     member: any;
-    assetData: AssetByBarcodeMessage;
+    queuedAssets: AssetByBarcodeMessage[];
     totalDueCharges?: number;
     createInvoice?: number;
+    action?: string;
+    savedDocName?: string;
+    otp?: string;
+    otp_verified?: number;
 }) => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('No token found');
@@ -200,54 +208,79 @@ export const submitBookReturn = async ({
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     };
 
-    const today = formatDate(new Date().toISOString());
-    const tempName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
-    const rowName = Math.random().toString(36).substring(2, 12);
+    let doc: any;
 
-    const md = assetData.member_details!;
-
-    const doc = {
-        docstatus: 0,
-        doctype: "Book Transaction",
-        name: tempName,
-        __islocal: 1,
-        __unsaved: 1,
-        transaction_type: "Return",
-        member: member.name,
-        member_name: member.member_name || member.name,
-        membership_status: member.membership_status || "Active",
-        mobile: member.mobile || "",
-        otp_verified: 0,
-        scan_barcode: "",
-        create_invoice: createInvoice,
-        total_due_charges: totalDueCharges,
-        book_transaction_detail: [],
-        renew_book_details: [],
-        return_book_details: [
+    if (savedDocName) {
+        const getRes = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.get?doctype=Book+Transaction&name=${savedDocName}`,
             {
-                docstatus: 0,
-                doctype: "Return Book Details",
-                name: rowName,
-                __islocal: 1,
-                __unsaved: 1,
-                access_no: assetData.asset_id,
-                book_title: assetData.asset_name,
-                transaction_date: md.transaction_date,
-                due_date: md.due_date,
-                return_date: today,
-                due_charges: 0,
-                transaction_no: md.name,
-                parent: tempName,
-                parentfield: "return_book_details",
-                parenttype: "Book Transaction",
-                idx: 1,
-            },
-        ],
-    };
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${access_token}`,
+                    Accept: "application/json",
+                },
+            }
+        );
+        const getData = await getRes.json();
+
+        if (!getRes.ok) {
+            throw new Error(getData.error || "Failed to fetch existing transaction");
+        }
+
+        doc = getData.message;
+        if (otp) {
+            doc.otp = otp;
+            doc.otp_verified = otp_verified;
+        }
+    } else {
+        const today = formatDate(new Date().toISOString());
+        const tempName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
+
+        doc = {
+            docstatus: 0,
+            doctype: "Book Transaction",
+            name: tempName,
+            __islocal: 1,
+            __unsaved: 1,
+            transaction_type: "Return",
+            member: member.name,
+            member_name: member.member_name || member.name,
+            membership_status: member.membership_status || "Active",
+            mobile: member.mobile || "",
+            otp: otp || null,
+            otp_verified: otp_verified || 0,
+            scan_barcode: "",
+            create_invoice: createInvoice,
+            total_due_charges: totalDueCharges,
+            book_transaction_detail: [],
+            renew_book_details: [],
+            return_book_details: queuedAssets.map((asset, idx) => {
+                const md = asset.member_details;
+                return {
+                    docstatus: 0,
+                    doctype: "Return Book Details",
+                    name: `new-return-book-details-${Math.random().toString(36).substring(2, 12)}`,
+                    __islocal: 1,
+                    __unsaved: 1,
+                    access_no: asset.asset_id,
+                    book_title: asset.asset_name,
+                    transaction_date: md?.transaction_date || today,
+                    due_date: md?.due_date || today,
+                    return_date: today,
+                    due_charges: 0, // Wait, maybe we should map asset.total_due_charges? For now keeping 0 like before
+                    transaction_no: md?.name || "",
+                    parent: tempName,
+                    parentfield: "return_book_details",
+                    parenttype: "Book Transaction",
+                    idx: idx + 1,
+                };
+            }),
+        };
+    }
 
     const params = new URLSearchParams({
         doc: JSON.stringify(doc),
-        action: "Submit",
+        action: action,
     });
 
     const res = await fetch(
@@ -266,7 +299,12 @@ export const submitBookReturn = async ({
 
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to submit return transaction");
-    return data.docs?.[0] || data.message || {};
+    
+    const returnedDoc = data.docs?.[0] || data.message || {};
+    return {
+        name: data.docinfo?.name || returnedDoc.name || "",
+        otp_verified: returnedDoc.otp_verified
+    };
 };
 
 export const submitBookRenew = async ({

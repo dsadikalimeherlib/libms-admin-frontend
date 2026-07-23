@@ -171,7 +171,7 @@ let activeTransactions: ActiveTransaction[] = [
   },
 ];
 
-export const formatDisplayDate = (value: string | Date) => format(new Date(value), "dd MMM yyyy");
+export const formatDisplayDate = (value: string | Date) => format(new Date(value), "dd/MM/yyyy");
 
 const calculateDueCharges = (dueDate: string, onDate = new Date()) => {
   const lateDays = differenceInCalendarDays(startOfDay(onDate), startOfDay(new Date(dueDate)));
