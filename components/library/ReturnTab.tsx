@@ -19,6 +19,8 @@ export const ReturnTab = ({
   setSavedDocName,
   otpVerified,
   setOtpVerified,
+  setQueuedAssets,
+  hasDueCharges,
 }: {
   queuedAssets: any[]; // AssetByBarcodeMessage[]
   loading?: boolean;
@@ -29,9 +31,11 @@ export const ReturnTab = ({
   setSavedDocName?: (name: string) => void;
   otpVerified?: boolean;
   setOtpVerified?: (verified: boolean) => void;
+  setQueuedAssets: (assets: any[]) => void;
+  hasDueCharges?: boolean;
 }) => {
   const md = queuedAssets.length > 0 ? queuedAssets[queuedAssets.length - 1]?.member_details : null;
-  const submitDisabled = queuedAssets.length === 0 || !md || returnMutation.isPending;
+  const submitDisabled = queuedAssets.length === 0 || !md || returnMutation.isPending || hasDueCharges;
   const [totalDueCharges, setTotalDueCharges] = useState(0);
   const [createInvoice, setCreateInvoice] = useState(1);
   const [returnDate, setReturnDate] = useState<string>(new Date().toISOString().split("T")[0]);
@@ -150,7 +154,7 @@ export const ReturnTab = ({
           <p className="section-heading">Return transaction</p>
           <p className="mt-1 text-sm text-muted-foreground">Review queued books before returning.</p>
         </div>
-        
+
         <div className="section-frame flex gap-3 ">
           <div>
             <p className="section-heading">Issue Date</p>
@@ -182,12 +186,13 @@ export const ReturnTab = ({
                 <TableHead>Due Date</TableHead>
                 <TableHead>Return Date</TableHead>
                 <TableHead>Due Charges</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
                     <Loader2 className="mx-auto animate-spin" />
                   </TableCell>
                 </TableRow>
@@ -201,10 +206,19 @@ export const ReturnTab = ({
                     <TableCell>{asset.member_details?.due_date ? formatDisplayDate(asset.member_details.due_date) : "—"}</TableCell>
                     <TableCell>{formatDisplayDate(returnDate)}</TableCell>
                     <TableCell>{asset.total_due_charges ?? 0}</TableCell>
+                    <TableCell>
+                      <button
+                        type="button"
+                        className="text-sm font-medium text-destructive hover:underline"
+                        onClick={() => setQueuedAssets(queuedAssets.filter(a => a.asset_id !== asset.asset_id))}
+                      >
+                        Remove
+                      </button>
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (
-                <EmptyStateRow message="Scan a barcode above and click Return tab to load transaction." colSpan={7} />
+                <EmptyStateRow message="Scan a barcode above and click Return tab to load transaction." colSpan={8} />
               )}
             </TableBody>
           </Table>
@@ -238,8 +252,8 @@ export const ReturnTab = ({
         onVerifyOTP={() => setOtpDialogOpen(true)}
         verifying={verifying}
         otpVerified={otpVerified}
-        disableGenerateOTP={!member || queuedAssets.length === 0}
-        disableVerifyOTP={!savedDocName}
+        disableGenerateOTP={!member || queuedAssets.length === 0 || hasDueCharges}
+        disableVerifyOTP={!savedDocName || hasDueCharges}
       />
       <OtpVerificationDialog
         open={otpDialogOpen}

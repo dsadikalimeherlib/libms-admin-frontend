@@ -236,3 +236,47 @@ export const validateUserRoles = async () => {
 
     return data.message;
 }
+
+export const getMemberList = async ({ docname }: { docname: string }) => {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+        console.error('No token found');
+        return;
+    }
+
+    const { access_token } = JSON.parse(token);
+
+    const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.get_list`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${access_token}`,
+            },
+            body: JSON.stringify({
+                doctype: "Sales Invoice",
+                filters: {
+                    customer: docname,
+                    docstatus: 1,
+                    outstanding_amount: [">", 0]
+                },
+                fields: ["name", "outstanding_amount"]
+            })
+        }
+    );
+
+    const data = await res.json();
+
+    if (res.status === 401) {
+        handleUnauthorized();
+        return;
+    }
+
+    if (!res.ok) {
+        throw new Error(data.error || "Failed to get sales invoices");
+    }
+
+    return data.message;
+}

@@ -26,6 +26,7 @@ export interface IssueTabProps {
   savedDocName?: string;
   otpVerified?: boolean;
   setOtpVerified?: (verified: boolean) => void;
+  hasDueCharges?: boolean;
 }
 
 const RootError = ({ message }: { message?: string }) =>
@@ -55,6 +56,7 @@ export const IssueTab = ({
   savedDocName,
   otpVerified,
   setOtpVerified,
+  hasDueCharges,
 }: IssueTabProps) => {
   const [verifying, setVerifying] = useState(false);
   const [otpDialogOpen, setOtpDialogOpen] = useState(false);
@@ -211,12 +213,13 @@ export const IssueTab = ({
                 <TableHead>Volume</TableHead>
                 <TableHead>Issue Date</TableHead>
                 <TableHead>Due Date</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
                     <Loader2 className="mx-auto animate-spin" />
                   </TableCell>
                 </TableRow>
@@ -231,10 +234,19 @@ export const IssueTab = ({
                     <TableCell>{book.volume || "—"}</TableCell>
                     <TableCell>{book.transactionDate ? format(new Date(book.transactionDate), 'dd-MM-yyyy') : "—"}</TableCell>
                     <TableCell>{book.dueDate ? format(new Date(book.dueDate), 'dd-MM-yyyy') : "—"}</TableCell>
+                    <TableCell>
+                      <button 
+                        type="button" 
+                        className="text-sm font-medium text-destructive hover:underline"
+                        onClick={() => setQueuedBooks && setQueuedBooks(queuedBooks.filter(b => b.barcode !== book.barcode))}
+                      >
+                        Remove
+                      </button>
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (
-                <EmptyStateRow message="Scan a barcode above and click Issue tab to load book details." colSpan={8} />
+                <EmptyStateRow message="Scan a barcode above and click Issue tab to load book details." colSpan={9} />
               )}
             </TableBody>
           </Table>
@@ -255,8 +267,8 @@ export const IssueTab = ({
         onVerifyOTP={() => setOtpDialogOpen(true)}
         verifying={verifying}
         otpVerified={otpVerified}
-        disableGenerateOTP={!member || queuedBooks.length === 0}
-        disableVerifyOTP={!savedDocName}
+        disableGenerateOTP={!member || queuedBooks.length === 0 || hasDueCharges}
+        disableVerifyOTP={!savedDocName || hasDueCharges}
       />
 
       <OtpVerificationDialog

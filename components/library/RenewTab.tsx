@@ -10,14 +10,16 @@ export const RenewTab = ({
   loading,
   renewMutation,
   onSubmitRenew,
+  hasDueCharges,
 }: {
   assetData?: TabAssetData | null;
   loading?: boolean;
   renewMutation: any;
   onSubmitRenew: (totalDueCharges: number) => void;
+  hasDueCharges?: boolean;
 }) => {
   const md = assetData?.member_details;
-  const submitDisabled = !assetData || !md || renewMutation.isPending;
+  const submitDisabled = !assetData || !md || renewMutation.isPending || hasDueCharges;
   const [totalDueCharges, setTotalDueCharges] = useState(0);
 
   useEffect(() => {

@@ -148,6 +148,7 @@ export interface TransactionFormProps {
   tabs: readonly { value: string; label: string }[];
   setTabAssetData: (v: TabAssetData | null) => void;
   memberLoading?: boolean;
+  hasDueCharges?: boolean;
 }
 
 export const TransactionForm = ({
@@ -172,6 +173,7 @@ export const TransactionForm = ({
   tabs,
   setTabAssetData,
   memberLoading = false,
+  hasDueCharges = false,
 }: TransactionFormProps) => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
 
@@ -304,6 +306,7 @@ export const TransactionForm = ({
                     <FormControl>
                       <Input
                         {...field}
+                        disabled={hasDueCharges}
                         onChange={(e) => {
                           if (activeTab === "issue") {
                             if (!member || member.is_valid_membership === false) {

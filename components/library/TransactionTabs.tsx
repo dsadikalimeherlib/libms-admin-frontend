@@ -30,7 +30,7 @@ import {
   type IssuePreviewRow,
   type Member,
 } from "@/lib/mock-library-api";
-import { getMembers, getMemberCustomer, validateMembers, validateMemberTransaction } from "@/services/members";
+import { getMembers, getMemberCustomer, validateMembers, validateMemberTransaction, getMemberList } from "@/services/members";
 import { getBookTransactionDetails, submitBookIssue, submitBookReturn, submitBookRenew, getAssetByBarcode, type AssetByBarcodeMessage, validateMemberToIssueBook, countBooksIssued } from "@/services/books";
 import { toast } from "react-toastify";
 
@@ -233,7 +233,7 @@ const tabs = [
   { value: "renew", label: "Renew" },
 ] as const;
 
-const TransactionTabs = () => {
+const TransactionTabs = ({ setDueMessage }: { setDueMessage?: (msg: string | null) => void } = {}) => {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]["value"]>("issue");
 
   const queryClient = useQueryClient();
@@ -258,6 +258,7 @@ const TransactionTabs = () => {
   const [memberLoading, setMemberLoading] = useState(false);
   const [savedDocName, setSavedDocName] = useState<string>("");
   const [otpVerified, setOtpVerified] = useState<boolean>(false);
+  const [hasDueCharges, setHasDueCharges] = useState(false);
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const skipNextSearchRef = useRef(false);
@@ -374,7 +375,7 @@ const TransactionTabs = () => {
     },
   });
 
-  const submitDisabled = !member || queuedBooks.length === 0 || issueMutation.isPending;
+  const submitDisabled = !member || queuedBooks.length === 0 || issueMutation.isPending || hasDueCharges;
 
   const onSubmitReturn = (totalDueCharges: number, createInvoice: number) => {
     if (!member) { toast.error("Member is required."); return; }
@@ -426,6 +427,8 @@ const TransactionTabs = () => {
     setOtpVerified(false);
     setMemberSuggestions([]);
     setDropdownActive(false);
+    setHasDueCharges(false);
+    if (setDueMessage) setDueMessage(null);
     form.reset();
   };
 
@@ -469,9 +472,32 @@ const TransactionTabs = () => {
           setMember((prev) => prev ? { ...prev, is_valid_membership: false } : null);
         }
       }
+
+      let hasDue = false;
+      if (customerData?.customer) {
+        try {
+          const invoices = await getMemberList({ docname: customerData.customer });
+          if (invoices && invoices.length > 0) {
+            const totalDue = invoices.reduce((sum: number, inv: any) => sum + (inv.outstanding_amount || 0), 0);
+            if (totalDue > 0) {
+              hasDue = true;
+              if (setDueMessage) setDueMessage(`This member has an outstanding amount of ₹${totalDue}. Please clear dues to proceed.`);
+            } else {
+              if (setDueMessage) setDueMessage(null);
+            }
+          } else {
+            if (setDueMessage) setDueMessage(null);
+          }
+        } catch (err) {
+          console.error("Failed to fetch due charges", err);
+        }
+      }
+      setHasDueCharges(hasDue);
     } catch (error: any) {
       setMember(null);
       toast.error(error?.message ?? "Member validation failed.");
+      setHasDueCharges(false);
+      if (setDueMessage) setDueMessage(null);
     } finally {
       setMemberLoading(false);
     }
@@ -479,6 +505,18 @@ const TransactionTabs = () => {
 
   const getAssetDetailFun = async (name: string) => {
     try {
+      const isAlreadyQueued = activeTab === "issue" 
+        ? queuedBooks.some(book => book.barcode === name)
+        : activeTab === "return" 
+          ? queuedAssets.some(asset => asset.asset_id === name)
+          : false;
+
+      if (isAlreadyQueued) {
+        toast.error("This book is already queued.");
+        form.setValue("barcode", "", { shouldValidate: false });
+        form.clearErrors("barcode");
+        return;
+      }
       setTabAssetLoading(true);
       const transactionType = activeTab === "issue" ? "Issue" : activeTab === "return" ? "Return" : "Renew";
       const data = await getAssetByBarcode({
@@ -531,7 +569,6 @@ const TransactionTabs = () => {
         data.dueDate = finalDueDate;
       }
       setTabAssetData(data);
-      setQueuedAssets((current) => [...current, data]);
       setAssetDoc(null);
 
       const mappedBook: Book = {
@@ -548,7 +585,12 @@ const TransactionTabs = () => {
       setScannedBook(mappedBook);
       form.setValue("barcode", "", { shouldValidate: false });
       form.clearErrors("barcode");
-      setQueuedBooks((current) => [...current, buildIssuePreview(mappedBook)]);
+      
+      if (activeTab === "issue") {
+        setQueuedBooks((current) => [...current, buildIssuePreview(mappedBook)]);
+      } else if (activeTab === "return") {
+        setQueuedAssets((current) => [...current, data]);
+      }
     } catch (error: any) {
       toast.error(error.message);
       form.setValue("barcode", "", { shouldValidate: false });
@@ -582,6 +624,7 @@ const TransactionTabs = () => {
         tabs={tabs}
         setTabAssetData={setTabAssetData}
         memberLoading={memberLoading}
+        hasDueCharges={hasDueCharges}
       />
 
       <div className={cn(activeTab !== "issue" && "hidden", "mt-1")}>
@@ -601,6 +644,7 @@ const TransactionTabs = () => {
           savedDocName={savedDocName}
           otpVerified={otpVerified}
           setOtpVerified={setOtpVerified}
+          hasDueCharges={hasDueCharges}
         />
       </div>
       <div className={cn(activeTab !== "return" && "hidden", "mt-1")}>
@@ -614,10 +658,12 @@ const TransactionTabs = () => {
           setSavedDocName={setSavedDocName}
           otpVerified={otpVerified}
           setOtpVerified={setOtpVerified}
+          setQueuedAssets={setQueuedAssets}
+          hasDueCharges={hasDueCharges}
         />
       </div>
       <div className={cn(activeTab !== "renew" && "hidden", "mt-1")}>
-        <RenewTab assetData={tabAssetData} loading={tabAssetLoading} renewMutation={renewMutation} onSubmitRenew={onSubmitRenew} />
+        <RenewTab assetData={tabAssetData} loading={tabAssetLoading} renewMutation={renewMutation} onSubmitRenew={onSubmitRenew} hasDueCharges={hasDueCharges} />
       </div>
     </div>
   );
