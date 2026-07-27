@@ -363,7 +363,7 @@ const TransactionTabs = ({ setDueMessage }: { setDueMessage?: (msg: string | nul
   });
 
   const renewMutation = useMutation({
-    mutationFn: (totalDueCharges: number) => submitBookRenew({ member: member!, assetData: tabAssetData!, totalDueCharges }),
+    mutationFn: ({ totalDueCharges, createInvoice }: { totalDueCharges: number, createInvoice: number }) => submitBookRenew({ member: member!, assetData: tabAssetData!, totalDueCharges, createInvoice }),
     onSuccess: () => {
       setTabAssetData(null);
       setScannedBook(null);
@@ -383,10 +383,10 @@ const TransactionTabs = ({ setDueMessage }: { setDueMessage?: (msg: string | nul
     returnMutation.mutate({ totalDueCharges, createInvoice });
   };
 
-  const onSubmitRenew = (totalDueCharges: number) => {
+  const onSubmitRenew = (totalDueCharges: number, createInvoice: number) => {
     if (!member) { toast.error("Member is required."); return; }
     if (!tabAssetData?.member_details) { toast.error("Scan a barcode to load transaction details."); return; }
-    renewMutation.mutate(totalDueCharges);
+    renewMutation.mutate({ totalDueCharges, createInvoice });
   };
 
   const onAddBook = async () => {

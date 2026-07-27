@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { formatDisplayDate } from "@/lib/mock-library-api";
 import { TabAssetData, EmptyStateRow, SubmitBar } from "./TransactionTabs";
 
@@ -15,12 +16,13 @@ export const RenewTab = ({
   assetData?: TabAssetData | null;
   loading?: boolean;
   renewMutation: any;
-  onSubmitRenew: (totalDueCharges: number) => void;
+  onSubmitRenew: (totalDueCharges: number, createInvoice: number) => void;
   hasDueCharges?: boolean;
 }) => {
   const md = assetData?.member_details;
   const submitDisabled = !assetData || !md || renewMutation.isPending || hasDueCharges;
   const [totalDueCharges, setTotalDueCharges] = useState(0);
+  const [createInvoice, setCreateInvoice] = useState(1);
 
   useEffect(() => {
     setTotalDueCharges(assetData?.total_due_charges || 0);
@@ -73,20 +75,30 @@ export const RenewTab = ({
         </div>
       </section>
 
-      <div className="flex items-center justify-end gap-4 py-4 md:ml-auto">
-        <label className="text-sm font-medium">Total Due Charges</label>
-        <Input
-          type="number"
-          value={totalDueCharges}
-          onChange={(e) => setTotalDueCharges(Number(e.target.value))}
-          className="w-32"
-        />
+      <div className="flex justify-end gap-4">
+        <div className="flex items-center justify-end gap-4 py-4">
+          <label className="text-sm font-medium">Total Due Charges</label>
+          <Input
+            type="number"
+            value={totalDueCharges}
+            onChange={(e) => setTotalDueCharges(Number(e.target.value))}
+            className="w-32"
+          />
+        </div>
+        <div className="flex items-center justify-end gap-2 py-4">
+          <Switch
+            id="createInvoiceCheckbox"
+            checked={createInvoice === 1}
+            onCheckedChange={(checked) => setCreateInvoice(checked ? 1 : 0)}
+          />
+          <label htmlFor="createInvoiceCheckbox" className="text-sm font-medium">Create Invoice</label>
+        </div>
       </div>
       <SubmitBar
         disabled={submitDisabled}
         loading={renewMutation.isPending}
         label="Submit Renew"
-        onClick={() => onSubmitRenew(totalDueCharges)}
+        onClick={() => onSubmitRenew(totalDueCharges, createInvoice)}
       />
     </div>
   );
