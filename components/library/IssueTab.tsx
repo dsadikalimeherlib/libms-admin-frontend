@@ -74,7 +74,14 @@ export const IssueTab = ({
     const newDate = new Date(newDateStr);
     if (isNaN(newDate.getTime())) return;
 
-    const newDueDateStr = format(addMonths(newDate, 1), 'yyyy-MM-dd');
+    let newDueDateStr = format(addMonths(newDate, 1), 'yyyy-MM-dd');
+    if (member?.due_date) {
+      const memberDueDate = new Date(member.due_date);
+      const calculatedDueDate = new Date(newDueDateStr);
+      if (calculatedDueDate > memberDueDate) {
+        newDueDateStr = format(memberDueDate, 'yyyy-MM-dd');
+      }
+    }
 
     if (assetData && setTabAssetData) {
       setTabAssetData({ ...assetData, transactionDate: newDateStr, dueDate: newDueDateStr });

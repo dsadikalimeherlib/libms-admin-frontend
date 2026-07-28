@@ -50,12 +50,19 @@ const issueFormSchema = z.object({
 
 export type IssueFormValues = z.infer<typeof issueFormSchema>;
 
-const buildIssuePreview = (book: Book): IssuePreviewRow => {
+const buildIssuePreview = (book: Book, member?: Member | null): IssuePreviewRow => {
   const transactionDate = new Date();
+  let dueDate = addMonths(transactionDate, 1);
+  if (member?.due_date) {
+    const memberDueDate = new Date(member.due_date);
+    if (dueDate > memberDueDate) {
+      dueDate = memberDueDate;
+    }
+  }
   return {
     ...book,
     transactionDate: format(transactionDate, 'yyyy-MM-dd'),
-    dueDate: format(addMonths(transactionDate, 1), 'yyyy-MM-dd'),
+    dueDate: format(dueDate, 'yyyy-MM-dd'),
   };
 };
 
@@ -317,7 +324,7 @@ const TransactionTabs = ({ setDueMessage }: { setDueMessage?: (msg: string | nul
       }
 
       setScannedBook(book);
-      setQueuedBooks((current) => [...current, buildIssuePreview(book)]);
+      setQueuedBooks((current) => [...current, buildIssuePreview(book, member)]);
       form.setValue("barcode", "", { shouldValidate: false });
       form.clearErrors("barcode");
       form.clearErrors("root");
@@ -587,7 +594,7 @@ const TransactionTabs = ({ setDueMessage }: { setDueMessage?: (msg: string | nul
       form.clearErrors("barcode");
       
       if (activeTab === "issue") {
-        setQueuedBooks((current) => [...current, buildIssuePreview(mappedBook)]);
+        setQueuedBooks((current) => [...current, buildIssuePreview(mappedBook, member)]);
       } else if (activeTab === "return") {
         setQueuedAssets((current) => [...current, data]);
       }
