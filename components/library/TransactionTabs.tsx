@@ -240,7 +240,7 @@ const tabs = [
   { value: "renew", label: "Renew" },
 ] as const;
 
-const TransactionTabs = ({ setDueMessage }: { setDueMessage?: (msg: string | null) => void } = {}) => {
+const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (msg: string | null) => void, setDuePaymentId?: (id: string | null) => void } = {}) => {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]["value"]>("issue");
 
   const queryClient = useQueryClient();
@@ -489,11 +489,19 @@ const TransactionTabs = ({ setDueMessage }: { setDueMessage?: (msg: string | nul
             if (totalDue > 0) {
               hasDue = true;
               if (setDueMessage) setDueMessage(`This member has an outstanding amount of ₹${totalDue}. Please clear dues to proceed.`);
+              if (setDuePaymentId) {
+                const firstDueInvoice = invoices.find((inv: any) => (inv.outstanding_amount || 0) > 0);
+                if (firstDueInvoice) {
+                  setDuePaymentId(firstDueInvoice.name.replace('SINV', 'PAY'));
+                }
+              }
             } else {
               if (setDueMessage) setDueMessage(null);
+              if (setDuePaymentId) setDuePaymentId(null);
             }
           } else {
             if (setDueMessage) setDueMessage(null);
+            if (setDuePaymentId) setDuePaymentId(null);
           }
         } catch (err) {
           console.error("Failed to fetch due charges", err);
@@ -505,6 +513,7 @@ const TransactionTabs = ({ setDueMessage }: { setDueMessage?: (msg: string | nul
       toast.error(error?.message ?? "Member validation failed.");
       setHasDueCharges(false);
       if (setDueMessage) setDueMessage(null);
+      if (setDuePaymentId) setDuePaymentId(null);
     } finally {
       setMemberLoading(false);
     }
@@ -512,9 +521,9 @@ const TransactionTabs = ({ setDueMessage }: { setDueMessage?: (msg: string | nul
 
   const getAssetDetailFun = async (name: string) => {
     try {
-      const isAlreadyQueued = activeTab === "issue" 
+      const isAlreadyQueued = activeTab === "issue"
         ? queuedBooks.some(book => book.barcode === name)
-        : activeTab === "return" 
+        : activeTab === "return"
           ? queuedAssets.some(asset => asset.asset_id === name)
           : false;
 
@@ -592,7 +601,7 @@ const TransactionTabs = ({ setDueMessage }: { setDueMessage?: (msg: string | nul
       setScannedBook(mappedBook);
       form.setValue("barcode", "", { shouldValidate: false });
       form.clearErrors("barcode");
-      
+
       if (activeTab === "issue") {
         setQueuedBooks((current) => [...current, buildIssuePreview(mappedBook, member)]);
       } else if (activeTab === "return") {
@@ -655,10 +664,10 @@ const TransactionTabs = ({ setDueMessage }: { setDueMessage?: (msg: string | nul
         />
       </div>
       <div className={cn(activeTab !== "return" && "hidden", "mt-1")}>
-        <ReturnTab 
-          queuedAssets={queuedAssets} 
-          loading={tabAssetLoading} 
-          returnMutation={returnMutation} 
+        <ReturnTab
+          queuedAssets={queuedAssets}
+          loading={tabAssetLoading}
+          returnMutation={returnMutation}
           onSubmitReturn={onSubmitReturn}
           member={member}
           savedDocName={savedDocName}

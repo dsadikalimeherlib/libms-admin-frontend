@@ -23,6 +23,7 @@ export const RenewTab = ({
   const submitDisabled = !assetData || !md || renewMutation.isPending || hasDueCharges;
   const [totalDueCharges, setTotalDueCharges] = useState(0);
   const [createInvoice, setCreateInvoice] = useState(1);
+  const [returnDate, setReturnDate] = useState<string>(new Date().toISOString().split("T")[0]);
 
   useEffect(() => {
     setTotalDueCharges(assetData?.total_due_charges || 0);
@@ -31,6 +32,25 @@ export const RenewTab = ({
   return (
     <div className="space-y-6">
       <section className="space-y-4">
+        <div className="section-frame flex gap-3 ">
+          <div>
+            <p className="section-heading">Issue Date</p>
+            {md?.transaction_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(md.transaction_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+          </div>
+          <div>
+            <p className="section-heading">Return Date</p>
+            <Input
+              type="date"
+              className="mt-1 w-auto"
+              value={returnDate}
+              onChange={(e) => setReturnDate(e.target.value)}
+            />
+          </div>
+          <div>
+            <p className="section-heading">Due Date</p>
+            {md?.due_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(md.due_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+          </div>
+        </div>
         <div>
           <p className="section-heading">Renew transaction</p>
           <p className="mt-1 text-sm text-muted-foreground">Review queued books before renewing.</p>
@@ -45,7 +65,7 @@ export const RenewTab = ({
                 <TableHead>Issue Date</TableHead>
                 <TableHead>Previous Due Date</TableHead>
                 <TableHead>Return Date</TableHead>
-                <TableHead>Renew Date</TableHead>
+                <TableHead>Due Date</TableHead>
                 <TableHead>Due Charges</TableHead>
               </TableRow>
             </TableHeader>
@@ -63,8 +83,8 @@ export const RenewTab = ({
                   <TableCell className="font-medium text-foreground">{assetData.asset_name}</TableCell>
                   <TableCell>{formatDisplayDate(md.transaction_date)}</TableCell>
                   <TableCell>{formatDisplayDate(md.due_date)}</TableCell>
-                  <TableCell>{formatDisplayDate(new Date().toISOString())}</TableCell>
-                  <TableCell>{formatDisplayDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())}</TableCell>
+                  <TableCell>{formatDisplayDate(returnDate)}</TableCell>
+                  <TableCell>{md?.due_date ? formatDisplayDate(md.due_date) : "—"}</TableCell>
                   <TableCell>{assetData.total_due_charges ?? 0}</TableCell>
                 </TableRow>
               ) : (
