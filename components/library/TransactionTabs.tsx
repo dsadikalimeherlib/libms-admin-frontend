@@ -456,7 +456,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       if (!customerData?.customer) {
         toast.warn("This member has no customer assigned.");
       }
-      if (activeTab === 'issue') {
+      if (activeTab === 'issue' || activeTab === 'reservation') {
         const issuedCountData = await countBooksIssued({ member: selectionValue });
         const limitData = await validateMemberToIssueBook({ member: selectionValue });
         const issuedCount = issuedCountData?.message?.count || 0;

@@ -7,59 +7,7 @@ export const ReservationTab = () => {
   return (
     <div className="space-y-8 p-1 pt-4">
       {/* Top Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Member Information */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-base">Member Information</h3>
-          
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground">Member</label>
-            <Input value="1795" readOnly className="bg-muted/30 border-muted" />
-          </div>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground">Member Name</label>
-            <Input value="KhadimHusain I Dauva" readOnly className="bg-muted/30 border-muted" />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground">Issued Book</label>
-            <Input value="3" readOnly className="bg-muted/30 border-muted" />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground">Status <span className="text-destructive">*</span></label>
-            <select className="flex h-10 w-full rounded-md border border-muted bg-muted/30 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
-              <option>Requested</option>
-            </select>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground">Mobile</label>
-            <Input value="8264261426" readOnly className="bg-muted/30 border-muted" />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground">Notify By</label>
-            <Input value="None" readOnly className="bg-muted/30 border-muted" />
-          </div>
-        </div>
-
-        {/* Book Information */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-base">Book Information</h3>
-          
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground">Book <span className="text-destructive">*</span></label>
-            <Input value="Test Book Title-15915" readOnly className="bg-muted/30 border-muted" />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground">Book Title</label>
-            <Input value="Test Book Title" readOnly className="bg-muted/30 border-muted" />
-          </div>
-        </div>
-      </div>
 
       <div className="border-t border-border my-6"></div>
 
@@ -68,7 +16,7 @@ export const ReservationTab = () => {
         {/* Reservation Information */}
         <div className="space-y-4">
           <h3 className="font-bold text-base">Reservation Information</h3>
-          
+
           <div className="space-y-1">
             <label className="text-sm font-medium text-foreground">Reservation Date</label>
             <Input value="30-07-2026" readOnly className="bg-muted/30 border-muted" />
@@ -83,7 +31,7 @@ export const ReservationTab = () => {
         {/* Book Reservation Details */}
         <div className="space-y-4">
           <h3 className="font-bold text-base">Book Reservation Details</h3>
-          
+
           <div className="border border-muted rounded-md overflow-hidden">
             <Table>
               <TableHeader className="bg-muted/50">
