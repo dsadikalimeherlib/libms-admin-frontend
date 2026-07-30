@@ -37,6 +37,7 @@ import { toast } from "react-toastify";
 import { IssueTab } from "./IssueTab";
 import { ReturnTab } from "./ReturnTab";
 import { RenewTab } from "./RenewTab";
+import { ReservationTab } from "./ReservationTab";
 import { TransactionForm } from "./TransactionForm";
 
 const issueFormSchema = z.object({
@@ -238,6 +239,7 @@ const tabs = [
   { value: "issue", label: "Issue" },
   { value: "return", label: "Return" },
   { value: "renew", label: "Renew" },
+  { value: "reservation", label: "Reservation" },
 ] as const;
 
 const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (msg: string | null) => void, setDuePaymentId?: (id: string | null) => void } = {}) => {
@@ -680,6 +682,9 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       </div>
       <div className={cn(activeTab !== "renew" && "hidden", "mt-1")}>
         <RenewTab assetData={tabAssetData} loading={tabAssetLoading} renewMutation={renewMutation} onSubmitRenew={onSubmitRenew} hasDueCharges={hasDueCharges} />
+      </div>
+      <div className={cn(activeTab !== "reservation" && "hidden", "mt-1")}>
+        <ReservationTab />
       </div>
     </div>
   );
