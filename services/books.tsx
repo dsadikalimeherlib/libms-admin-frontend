@@ -299,7 +299,7 @@ export const submitBookReturn = async ({
 
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to submit return transaction");
-    
+
     const returnedDoc = data.docs?.[0] || data.message || {};
     return {
         name: data.docinfo?.name || returnedDoc.name || "",
@@ -646,3 +646,172 @@ export const countBooksIssued = async ({
 
     return data;
 }
+
+export interface SearchBookResult {
+    value: string;
+    description: string;
+}
+
+export const searchBooks = async ({
+    txt,
+    doctype = "Book",
+    reference_doctype = "Book Reservation",
+    page_length = 25
+}: {
+    txt: string;
+    doctype?: string;
+    reference_doctype?: string;
+    page_length?: number;
+}): Promise<{ message: SearchBookResult[] }> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token found');
+    const { access_token } = JSON.parse(token);
+
+    const body = new URLSearchParams({
+        txt,
+        doctype,
+        ignore_user_permissions: "0",
+        reference_doctype,
+        page_length: page_length.toString()
+    });
+
+    const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.search.search_link`,
+        {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+                Accept: 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-Frappe-CMD': '',
+            },
+            body: body.toString(),
+        }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.message || data.error || 'Failed to search books');
+
+    return data;
+};
+
+export interface SelectBookResult {
+    name: string;
+    asset_name: string;
+    status: string;
+}
+
+export const selectBook = async ({
+    item_code,
+    limit = 20
+}: {
+    item_code: string;
+    limit?: number;
+}): Promise<{ message: SelectBookResult[] }> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token found');
+    const { access_token } = JSON.parse(token);
+
+    const queryParams = new URLSearchParams({
+        doctype: "Asset",
+        fields: JSON.stringify(["name", "asset_name", "status"]),
+        filters: JSON.stringify({ item_code }),
+        limit: limit.toString()
+    });
+
+    const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.reportview.get_list?${queryParams.toString()}`,
+        {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.message || data.error || 'Failed to select books');
+
+    return data;
+};
+
+export const submitBookReservation = async ({
+    member,
+    book,
+    bookTitle,
+    reservationDate,
+    reservedAssets
+}: {
+    member: any;
+    book: string;
+    bookTitle: string;
+    reservationDate: string;
+    reservedAssets: SelectBookResult[];
+}) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token found');
+    const { access_token } = JSON.parse(token);
+
+    const docName = `new-book-reservation-${Math.random().toString(36).substring(2, 12)}`;
+
+    const doc = {
+        docstatus: 0,
+        doctype: "Book Reservation",
+        name: docName,
+        __islocal: 1,
+        __unsaved: 1,
+        status: "Requested",
+        reservation_date: reservationDate,
+        book_reservation_details: reservedAssets.map((asset, idx) => ({
+            docstatus: 0,
+            doctype: "Book Reservation Details",
+            name: `new-book-reservation-details-${Math.random().toString(36).substring(2, 12)}`,
+            __islocal: 1,
+            __unsaved: 1,
+            parent: docName,
+            parentfield: "book_reservation_details",
+            parenttype: "Book Reservation",
+            idx: idx + 1,
+            access_no: asset.name,
+            book_name: asset.asset_name,
+            book_status: asset.status
+        })),
+        member_name: member.member_name || member.name,
+        mobile: member.mobile || "",
+        notify_by: "None",
+        member: member.name,
+        issued_book: member.issued_book || 0,
+        book_title: bookTitle,
+        book: book
+    };
+
+    const params = new URLSearchParams({
+        doc: JSON.stringify(doc),
+        action: "Save",
+    });
+
+    const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.form.save.savedocs`,
+        {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+                Accept: "application/json",
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: params.toString(),
+        }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || "Failed to submit book reservation");
+
+    return data.docs?.[0] || data.message || {};
+};

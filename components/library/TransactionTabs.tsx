@@ -31,7 +31,7 @@ import {
   type Member,
 } from "@/lib/mock-library-api";
 import { getMembers, getMemberCustomer, validateMembers, validateMemberTransaction, getMemberList } from "@/services/members";
-import { getBookTransactionDetails, submitBookIssue, submitBookReturn, submitBookRenew, getAssetByBarcode, type AssetByBarcodeMessage, validateMemberToIssueBook, countBooksIssued } from "@/services/books";
+import { getBookTransactionDetails, submitBookIssue, submitBookReturn, submitBookRenew, submitBookReservation, getAssetByBarcode, type AssetByBarcodeMessage, validateMemberToIssueBook, countBooksIssued, type SelectBookResult } from "@/services/books";
 import { toast } from "react-toastify";
 
 import { IssueTab } from "./IssueTab";
@@ -51,9 +51,9 @@ const issueFormSchema = z.object({
 
 export type IssueFormValues = z.infer<typeof issueFormSchema>;
 
-const buildIssuePreview = (book: Book, member?: Member | null): IssuePreviewRow => {
+const buildIssuePreview = (book: Book, member?: Member | null, maxIssueDays: number = 30): IssuePreviewRow => {
   const transactionDate = new Date();
-  let dueDate = addMonths(transactionDate, 1);
+  let dueDate = addDays(transactionDate, maxIssueDays);
   if (member?.due_date) {
     const memberDueDate = new Date(member.due_date);
     if (dueDate > memberDueDate) {
@@ -268,6 +268,9 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
   const [savedDocName, setSavedDocName] = useState<string>("");
   const [otpVerified, setOtpVerified] = useState<boolean>(false);
   const [hasDueCharges, setHasDueCharges] = useState(false);
+  const [reservedAssets, setReservedAssets] = useState<SelectBookResult[]>([]);
+  const [reservationDate, setReservationDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [maxIssueDays, setMaxIssueDays] = useState<number>(30);
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const skipNextSearchRef = useRef(false);
@@ -326,7 +329,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       }
 
       setScannedBook(book);
-      setQueuedBooks((current) => [...current, buildIssuePreview(book, member)]);
+      setQueuedBooks((current) => [...current, buildIssuePreview(book, member, maxIssueDays)]);
       form.setValue("barcode", "", { shouldValidate: false });
       form.clearErrors("barcode");
       form.clearErrors("root");
@@ -384,6 +387,35 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
     },
   });
 
+  const reservationMutation = useMutation({
+    mutationFn: () => {
+      if (!member) throw new Error("Member is required for reservation.");
+      if (reservedAssets.length === 0) throw new Error("At least one book must be reserved.");
+      
+      const itemCode = form.getValues("barcode");
+      const bookTitle = reservedAssets[0]?.asset_name || "";
+      
+      return submitBookReservation({
+        member,
+        book: itemCode,
+        bookTitle,
+        reservationDate,
+        reservedAssets
+      });
+    },
+    onSuccess: () => {
+      setReservedAssets([]);
+      setMember(null);
+      form.setValue("memberQuery", "", { shouldValidate: false });
+      form.setValue("barcode", "", { shouldValidate: false });
+      toast.success("Book reservation created successfully.");
+      queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    }
+  });
+
   const submitDisabled = !member || queuedBooks.length === 0 || issueMutation.isPending || hasDueCharges;
 
   const onSubmitReturn = (totalDueCharges: number, createInvoice: number) => {
@@ -396,6 +428,10 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
     if (!member) { toast.error("Member is required."); return; }
     if (!tabAssetData?.member_details) { toast.error("Scan a barcode to load transaction details."); return; }
     renewMutation.mutate({ totalDueCharges, createInvoice });
+  };
+
+  const onSubmitReservation = () => {
+    reservationMutation.mutate();
   };
 
   const onAddBook = async () => {
@@ -437,6 +473,8 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
     setMemberSuggestions([]);
     setDropdownActive(false);
     setHasDueCharges(false);
+    setReservedAssets([]);
+    setReservationDate(format(new Date(), 'yyyy-MM-dd'));
     if (setDueMessage) setDueMessage(null);
     form.reset();
   };
@@ -462,6 +500,8 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         const issuedCount = issuedCountData?.message?.count || 0;
         const limitArray = limitData?.message;
         const limit = limitArray && limitArray.length > 0 ? Number(limitArray[0]) : 0;
+        const daysLimit = limitArray && limitArray.length > 1 ? Number(limitArray[1]) : 30;
+        setMaxIssueDays(daysLimit);
 
         if (limit <= issuedCount) {
           toast.error(`Not allowed more than given limit ${limit} books`);
@@ -559,10 +599,15 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         setMember(validatedMember);
       }
 
+      let localDaysLimit = maxIssueDays;
       if (activeTab === "issue" || activeTab === "renew") {
         const allowedData = await validateMemberToIssueBook({
           member: member?.name || "",
         })
+        const daysLimit = allowedData.message && allowedData.message.length > 1 ? Number(allowedData.message[1]) : 30;
+        setMaxIssueDays(daysLimit);
+        localDaysLimit = daysLimit;
+        
         if (allowedData.message.length == 0) {
           toast.error(allowedData.message);
           setMember(null);
@@ -576,11 +621,11 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         const tDate = new Date();
         data.transactionDate = format(tDate, 'yyyy-MM-dd');
 
-        let finalDueDate = format(addMonths(tDate, 1), 'yyyy-MM-dd');
+        let finalDueDate = format(addDays(tDate, localDaysLimit), 'yyyy-MM-dd');
         if (member?.due_date) {
           const memberDueDate = new Date(member.due_date);
-          const oneMonthLater = addMonths(tDate, 1);
-          if (memberDueDate < oneMonthLater) {
+          const maxDateAllowed = addDays(tDate, localDaysLimit);
+          if (memberDueDate < maxDateAllowed) {
             finalDueDate = format(memberDueDate, 'yyyy-MM-dd');
           }
         }
@@ -605,7 +650,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       form.clearErrors("barcode");
 
       if (activeTab === "issue") {
-        setQueuedBooks((current) => [...current, buildIssuePreview(mappedBook, member)]);
+        setQueuedBooks((current) => [...current, buildIssuePreview(mappedBook, member, maxIssueDays)]);
       } else if (activeTab === "return") {
         setQueuedAssets((current) => [...current, data]);
       }
@@ -643,6 +688,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         setTabAssetData={setTabAssetData}
         memberLoading={memberLoading}
         hasDueCharges={hasDueCharges}
+        setReservedAssets={setReservedAssets}
       />
 
       <div className={cn(activeTab !== "issue" && "hidden", "mt-1")}>
@@ -663,6 +709,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
           otpVerified={otpVerified}
           setOtpVerified={setOtpVerified}
           hasDueCharges={hasDueCharges}
+          maxIssueDays={maxIssueDays}
         />
       </div>
       <div className={cn(activeTab !== "return" && "hidden", "mt-1")}>
@@ -684,7 +731,13 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         <RenewTab assetData={tabAssetData} loading={tabAssetLoading} renewMutation={renewMutation} onSubmitRenew={onSubmitRenew} hasDueCharges={hasDueCharges} />
       </div>
       <div className={cn(activeTab !== "reservation" && "hidden", "mt-1")}>
-        <ReservationTab />
+        <ReservationTab 
+          reservedAssets={reservedAssets}
+          reservationDate={reservationDate}
+          setReservationDate={setReservationDate}
+          onSubmit={onSubmitReservation}
+          loading={reservationMutation.isPending}
+        />
       </div>
     </div>
   );

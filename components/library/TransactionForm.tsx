@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Loader2, ScanLine, Camera } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { IssueFormValues, AssetDoc, MemberSuggestion, TabAssetData } from "./Tra
 import { getMemberImage } from "@/services/members";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { toast } from "react-toastify";
-
+import { searchBooks, selectBook, type SearchBookResult, type SelectBookResult } from "@/services/books";
 export const MemberDetails = ({ member }: { member: Member }) => {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
@@ -149,6 +149,7 @@ export interface TransactionFormProps {
   setTabAssetData: (v: TabAssetData | null) => void;
   memberLoading?: boolean;
   hasDueCharges?: boolean;
+  setReservedAssets?: (assets: SelectBookResult[]) => void;
 }
 
 export const TransactionForm = ({
@@ -174,8 +175,69 @@ export const TransactionForm = ({
   setTabAssetData,
   memberLoading = false,
   hasDueCharges = false,
+  setReservedAssets,
 }: TransactionFormProps) => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  const [bookSuggestions, setBookSuggestions] = useState<SearchBookResult[]>([]);
+  const [bookInputFocused, setBookInputFocused] = useState(false);
+  const [bookDropdownActive, setBookDropdownActive] = useState(false);
+  const [bookLoading, setBookLoading] = useState(false);
+
+  const watchedBarcode = form.watch("barcode");
+  const barcodeDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const skipNextBarcodeSearchRef = useRef(false);
+
+  const loadBookSuggestions = async (query: string) => {
+    if (activeTab !== "reservation" || !query || query.length < 3) {
+      setBookSuggestions([]);
+      return;
+    }
+    setBookLoading(true);
+    try {
+      const result = await searchBooks({ txt: query });
+      setBookSuggestions(result.message ?? []);
+    } catch (error) {
+      setBookSuggestions([]);
+    } finally {
+      setBookLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (skipNextBarcodeSearchRef.current) {
+      skipNextBarcodeSearchRef.current = false;
+      return;
+    }
+    if (barcodeDebounceRef.current) clearTimeout(barcodeDebounceRef.current);
+    barcodeDebounceRef.current = setTimeout(() => {
+      void loadBookSuggestions(watchedBarcode);
+    }, 500);
+
+    return () => {
+      if (barcodeDebounceRef.current) clearTimeout(barcodeDebounceRef.current);
+    };
+  }, [watchedBarcode, activeTab]);
+
+  const handleBookSuggestionClick = async (selectionValue: string) => {
+    skipNextBarcodeSearchRef.current = true;
+    form.setValue("barcode", selectionValue, { shouldValidate: true });
+    setBookSuggestions([]);
+    setBookDropdownActive(false);
+
+    if (activeTab === "reservation") {
+      try {
+        const result = await selectBook({ item_code: selectionValue });
+        if (setReservedAssets) {
+          setReservedAssets(result.message || []);
+        }
+      } catch (error: any) {
+        toast.error(error.message || "Failed to fetch reservation books");
+      }
+    } else {
+      getAssetDetailFun(selectionValue);
+    }
+  };
 
   const handleScanSuccess = (barcode: string) => {
     form.setValue("barcode", barcode, { shouldValidate: true });
@@ -304,48 +366,77 @@ export const TransactionForm = ({
                   <FormItem>
                     <FormLabel>Book information</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        disabled={hasDueCharges}
-                        onChange={(e) => {
-                          if (activeTab === "issue") {
-                            if (!member || member.is_valid_membership === false) {
-                              const msg = !member ? "Please enter Member ID before barcode scan " : "Membership is not valid";
-                              toast.error(msg, { toastId: "barcode-err" });
-                              return;
+                      <div className="relative">
+                        <Input
+                          {...field}
+                          disabled={hasDueCharges}
+                          onFocus={() => setBookInputFocused(true)}
+                          onBlur={() => setBookInputFocused(false)}
+                          onChange={(e) => {
+                            if (activeTab === "issue") {
+                              if (!member || member.is_valid_membership === false) {
+                                const msg = !member ? "Please enter Member ID before barcode scan " : "Membership is not valid";
+                                toast.error(msg, { toastId: "barcode-err" });
+                                return;
+                              }
                             }
-                          }
-                          form.clearErrors("barcode");
-                          field.onChange(e);
-                        }}
-                        placeholder="Scan or type barcode"
-                        autoComplete="off"
-                        onKeyDown={(event) => {
-                          if (activeTab === "issue") {
-                            if (!member || member.is_valid_membership === false) {
+                            form.clearErrors("barcode");
+                            field.onChange(e);
+                          }}
+                          placeholder={activeTab === "reservation" ? "Search Book" : "Scan or type barcode"}
+                          autoComplete="off"
+                          onKeyDown={(event) => {
+                            if (activeTab === "issue") {
+                              if (!member || member.is_valid_membership === false) {
+                                event.preventDefault();
+                                const msg = !member ? "Please enter Member ID before barcode scan " : "Membership is not valid";
+                                toast.error(msg, { toastId: "barcode-err" });
+                                return;
+                              }
+                            }
+                            if (event.key === "Enter") {
                               event.preventDefault();
-                              const msg = !member ? "Please enter Member ID before barcode scan " : "Membership is not valid";
-                              toast.error(msg, { toastId: "barcode-err" });
-                              return;
+                              // void onAddBook();
+                              getAssetDetailFun(field.value);
                             }
-                          }
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            // void onAddBook();
-                            getAssetDetailFun(field.value);
-                          }
-                        }}
-                      />
+                          }}
+                        />
+                        {bookLoading && (
+                          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
                     </FormControl>
                     <FormMessage />
+                    {bookSuggestions?.length > 0 && (bookInputFocused || bookDropdownActive) && (
+                      <div
+                        className="mt-2 max-h-40 overflow-y-auto border rounded-md bg-background absolute z-10 w-full"
+                        onMouseEnter={() => setBookDropdownActive(true)}
+                        onMouseLeave={() => setBookDropdownActive(false)}
+                      >
+                        {bookSuggestions.map((m, idx) => (
+                          <div
+                            key={idx}
+                            className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                            onClick={() => handleBookSuggestionClick(m.value)}
+                          >
+                            <div className="font-medium">{m.value}</div>
+                            <div className="text-sm text-muted-foreground">{m.description}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </FormItem>
                 )}
               />
-
-              <Button type="button" variant="secondary" onClick={() => setIsScannerOpen(true)} disabled={bookMutation.isPending} className="md:mt-6">
-                {bookMutation.isPending ? <Loader2 className="animate-spin" /> : <ScanLine />}
-                Add book
-              </Button>
+              {
+                activeTab !== "reservation" &&
+                <Button type="button" variant="secondary" onClick={() => setIsScannerOpen(true)} disabled={bookMutation.isPending} className="md:mt-6">
+                  {bookMutation.isPending ? <Loader2 className="animate-spin" /> : <ScanLine />}
+                  Add book
+                </Button>
+              }
             </div>
 
             {scannedBook ? <BookDetails book={scannedBook} /> : null}

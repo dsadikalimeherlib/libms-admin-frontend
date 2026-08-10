@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import { format, addMonths } from "date-fns";
+import { format, addMonths, addDays } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { UseFormReturn } from "react-hook-form";
@@ -27,6 +27,7 @@ export interface IssueTabProps {
   otpVerified?: boolean;
   setOtpVerified?: (verified: boolean) => void;
   hasDueCharges?: boolean;
+  maxIssueDays?: number;
 }
 
 const RootError = ({ message }: { message?: string }) =>
@@ -57,6 +58,7 @@ export const IssueTab = ({
   otpVerified,
   setOtpVerified,
   hasDueCharges,
+  maxIssueDays,
 }: IssueTabProps) => {
   const [verifying, setVerifying] = useState(false);
   const [otpDialogOpen, setOtpDialogOpen] = useState(false);
@@ -67,6 +69,21 @@ export const IssueTab = ({
   useEffect(() => {
     setGeneratedOtp("");
   }, [member?.name]);
+
+  useEffect(() => {
+    // Clear issue and due date if member or queued books change
+    if (queuedBooks.length > 0 && setQueuedBooks) {
+      if (queuedBooks.some(b => b.transactionDate || b.dueDate)) {
+        setQueuedBooks(queuedBooks.map(b => ({ ...b, transactionDate: "", dueDate: "" })));
+      }
+    }
+    if (assetData && setTabAssetData) {
+      if (assetData.transactionDate || assetData.dueDate) {
+        setTabAssetData({ ...assetData, transactionDate: "", dueDate: "" });
+      }
+    }
+  }, [member?.name, queuedBooks.length]);
+
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDateStr = e.target.value;
     if (!newDateStr) return;
@@ -74,7 +91,7 @@ export const IssueTab = ({
     const newDate = new Date(newDateStr);
     if (isNaN(newDate.getTime())) return;
 
-    let newDueDateStr = format(addMonths(newDate, 1), 'yyyy-MM-dd');
+    let newDueDateStr = format(addDays(newDate, maxIssueDays || 30), 'yyyy-MM-dd');
     if (member?.due_date) {
       const memberDueDate = new Date(member.due_date);
       const calculatedDueDate = new Date(newDueDateStr);
@@ -201,11 +218,14 @@ export const IssueTab = ({
               className="mt-1 w-auto"
               value={assetData?.transactionDate || (queuedBooks[0]?.transactionDate) || ""}
               onChange={handleDateChange}
+              max={member?.due_date ? format(new Date(member.due_date), 'yyyy-MM-dd') : undefined}
+              min={format(new Date(), 'yyyy-MM-dd')}
+              disabled={!member || queuedBooks.length === 0}
             />
           </div>
           <div>
             <p className="section-heading">Due Date</p>
-            {assetData?.dueDate ? <p className="mt-1 text-sm text-foreground">{format(new Date(assetData.dueDate), 'dd/MM/yyyy')}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+            {assetData?.dueDate || queuedBooks[0]?.dueDate ? <p className="mt-1 text-sm text-foreground">{format(new Date(assetData?.dueDate || queuedBooks[0]?.dueDate), 'dd/MM/yyyy')}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
           </div>
         </div>
         <div className="table-shell">

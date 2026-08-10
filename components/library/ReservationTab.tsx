@@ -1,9 +1,22 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pencil, Settings } from "lucide-react";
+import { Pencil, Settings, Loader2 } from "lucide-react";
+import type { SelectBookResult } from "@/services/books";
 
-export const ReservationTab = () => {
+export const ReservationTab = ({
+  reservedAssets = [],
+  reservationDate,
+  setReservationDate,
+  onSubmit,
+  loading
+}: {
+  reservedAssets?: SelectBookResult[];
+  reservationDate?: string;
+  setReservationDate?: (val: string) => void;
+  onSubmit?: () => void;
+  loading?: boolean;
+}) => {
   return (
     <div className="space-y-8 p-1 pt-4">
       {/* Top Section */}
@@ -19,7 +32,13 @@ export const ReservationTab = () => {
 
           <div className="space-y-1">
             <label className="text-sm font-medium text-foreground">Reservation Date</label>
-            <Input value="30-07-2026" readOnly className="bg-muted/30 border-muted" />
+            <Input
+              type="date"
+              value={reservationDate}
+              onChange={(e) => setReservationDate?.(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="bg-muted/30 border-muted"
+            />
           </div>
 
           <div className="space-y-1">
@@ -44,27 +63,32 @@ export const ReservationTab = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableRow>
-                  <TableCell><input type="checkbox" className="rounded border-muted-foreground" disabled /></TableCell>
-                  <TableCell className="font-medium text-foreground">ACC-ASS-2025-000...</TableCell>
-                  <TableCell className="text-foreground">Test Book Title</TableCell>
-                  <TableCell className="text-foreground">Issue</TableCell>
-                  <TableCell><Pencil className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-foreground" /></TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell><input type="checkbox" className="rounded border-muted-foreground" disabled /></TableCell>
-                  <TableCell className="font-medium text-foreground">ACC-ASS-2025-000...</TableCell>
-                  <TableCell className="text-foreground">Test Book Title</TableCell>
-                  <TableCell className="text-foreground">Issue</TableCell>
-                  <TableCell><Pencil className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-foreground" /></TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell><input type="checkbox" className="rounded border-muted-foreground" disabled /></TableCell>
-                  <TableCell className="font-medium text-foreground">ACC-ASS-2025-000...</TableCell>
-                  <TableCell className="text-foreground">Test Book Title</TableCell>
-                  <TableCell className="text-foreground">Cancelled</TableCell>
-                  <TableCell><Pencil className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-foreground" /></TableCell>
-                </TableRow>
+                {reservedAssets.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      No books selected
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  reservedAssets.map((asset, idx) => {
+                    console.log('asset1111', asset);
+                    if (asset.status.toLowerCase() == 'available') {
+                      return (
+                        <TableRow key={idx}>
+                          <TableCell><input type="checkbox" className="rounded border-muted-foreground" disabled /></TableCell>
+                          <TableCell className="font-medium text-foreground">{asset.name}</TableCell>
+                          <TableCell className="text-foreground">{asset.asset_name}</TableCell>
+                          <TableCell className="text-foreground">{asset.status}</TableCell>
+                          <TableCell><Pencil className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-foreground" /></TableCell>
+                        </TableRow>
+                      )
+                    } else {
+                      return (
+                        <></>
+                      )
+                    }
+                  })
+                )}
               </TableBody>
             </Table>
           </div>
@@ -73,41 +97,16 @@ export const ReservationTab = () => {
 
       <div className="border-t border-border my-6"></div>
 
-      {/* Schedule Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="space-y-6">
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground">Schedule</label>
-            <Input value="01-07-2026 11:04:12" readOnly className="bg-muted/30 border-muted" />
-            <p className="text-xs text-muted-foreground mt-1">Asia/Kolkata</p>
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground">Next Schedule</label>
-            <Input value="01-08-2026 11:04:12" readOnly className="bg-muted/30 border-muted" />
-            <p className="text-xs text-muted-foreground mt-1">Asia/Kolkata</p>
-          </div>
-          <div className="pt-2 pb-2">
-            <Button variant="secondary" className="bg-muted/50 hover:bg-muted text-foreground">Send SMS</Button>
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground">Next Schedule1</label>
-            <Input value="01-09-2026 11:04:12" readOnly className="bg-muted/30 border-muted" />
-            <p className="text-xs text-muted-foreground mt-1">Asia/Kolkata</p>
-          </div>
-        </div>
 
-        <div className="space-y-6">
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground">End Schedule</label>
-            <Input value="30-07-2026 11:04:12" readOnly className="bg-muted/30 border-muted" />
-            <p className="text-xs text-muted-foreground mt-1">Asia/Kolkata</p>
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground">End Schedule1</label>
-            <Input value="31-08-2026 11:04:12" readOnly className="bg-muted/30 border-muted" />
-            <p className="text-xs text-muted-foreground mt-1">Asia/Kolkata</p>
-          </div>
-        </div>
+      <div className="flex justify-end items-center w-full">
+        <button
+          onClick={onSubmit}
+          disabled={loading}
+          className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md flex items-center justify-center disabled:opacity-50"
+        >
+          {loading && <Loader2 className="animate-spin mr-2 h-4 w-4" />}
+          Submit
+        </button>
       </div>
     </div>
   );
