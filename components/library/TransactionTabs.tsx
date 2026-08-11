@@ -30,8 +30,8 @@ import {
   type IssuePreviewRow,
   type Member,
 } from "@/lib/mock-library-api";
-import { getMembers, getMemberCustomer, validateMembers, validateMemberTransaction, getMemberList } from "@/services/members";
-import { getBookTransactionDetails, submitBookIssue, submitBookReturn, submitBookRenew, submitBookReservation, getAssetByBarcode, type AssetByBarcodeMessage, validateMemberToIssueBook, countBooksIssued, type SelectBookResult } from "@/services/books";
+import { getMemberCustomer, validateMembers, validateMemberTransaction, getMemberList } from "@/services/members";
+import { searchFrappeLink, submitBookTransaction, submitBookRenew, submitBookReservation, getAssetByBarcode, type AssetByBarcodeMessage, validateMemberToIssueBook, countBooksIssued, type SelectBookResult } from "@/services/books";
 import { toast } from "react-toastify";
 
 import { IssueTab } from "./IssueTab";
@@ -279,8 +279,13 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
   const loadMemberSuggestions = async (query: string) => {
     setMemberLoading(true);
     try {
-      const result = (await getMembers({ text: query })) as MemberSuggestion[];
-      setMemberSuggestions(result ?? []);
+      const result = await searchFrappeLink({
+        txt: query,
+        doctype: "Member",
+        reference_doctype: "Book Transaction",
+        filters: { membership_status: "Active" }
+      });
+      setMemberSuggestions((result.message as MemberSuggestion[]) || []);
     } catch (error) {
       setMemberSuggestions([]);
     } finally {
@@ -315,33 +320,10 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
 
 
 
-  const bookMutation = useMutation({
-    mutationFn: (barcode: string) =>
-      getBookTransactionDetails({
-        barcode,
-        member: member?.name || "",
-        transaction_type: activeTab === "issue" ? "Issue" : activeTab === "return" ? "Return" : "Renew",
-      }),
-    onSuccess: (book) => {
-      if (queuedBooks.some((item) => item.barcode === book.barcode)) {
-        form.setError("barcode", { message: "This barcode is already queued." });
-        return;
-      }
 
-      setScannedBook(book);
-      setQueuedBooks((current) => [...current, buildIssuePreview(book, member, maxIssueDays)]);
-      form.setValue("barcode", "", { shouldValidate: false });
-      form.clearErrors("barcode");
-      form.clearErrors("root");
-      toast.success(`${book.title} added to the issue queue.`);
-    },
-    onError: (error: Error) => {
-      form.setError("barcode", { message: error.message });
-    },
-  });
 
   const issueMutation = useMutation({
-    mutationFn: () => submitBookIssue({ member: member!, queuedBooks, barcode: form.getValues("barcode"), savedDocName }),
+    mutationFn: () => submitBookTransaction({ transaction_type: "Issue", member: member!, queuedBooks, barcode: form.getValues("barcode"), savedDocName }),
     onSuccess: (result) => {
       setQueuedBooks([]);
       setMember(null);
@@ -352,7 +334,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       form.setValue("memberQuery", "", { shouldValidate: false });
       form.setValue("barcode", "", { shouldValidate: false });
       form.clearErrors();
-      toast.success(`${result.rows.length} item(s) issued to ${result.member.name}.`);
+      toast.success(`${result.rows.length} item(s) issued to ${result.member?.name}.`);
       queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
     },
     onError: (error: Error) => {
@@ -361,7 +343,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
   });
 
   const returnMutation = useMutation({
-    mutationFn: ({ totalDueCharges, createInvoice }: { totalDueCharges: number, createInvoice: number }) => submitBookReturn({ member: member!, queuedAssets, totalDueCharges, createInvoice }),
+    mutationFn: ({ totalDueCharges, createInvoice }: { totalDueCharges: number, createInvoice: number }) => submitBookTransaction({ transaction_type: "Return", member: member!, queuedAssets, totalDueCharges, createInvoice }),
     onSuccess: () => {
       setTabAssetData(null);
       setQueuedAssets([]);
@@ -391,10 +373,10 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
     mutationFn: () => {
       if (!member) throw new Error("Member is required for reservation.");
       if (reservedAssets.length === 0) throw new Error("At least one book must be reserved.");
-      
+
       const itemCode = form.getValues("barcode");
       const bookTitle = reservedAssets[0]?.asset_name || "";
-      
+
       return submitBookReservation({
         member,
         book: itemCode,
@@ -432,19 +414,6 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
 
   const onSubmitReservation = () => {
     reservationMutation.mutate();
-  };
-
-  const onAddBook = async () => {
-    form.clearErrors("root");
-    if (!member) {
-      form.setError("root", { message: "Validate a member before adding books." });
-      return;
-    }
-
-    const valid = await form.trigger("barcode");
-    if (!valid) return;
-
-    bookMutation.mutate(form.getValues("barcode"));
   };
 
   const onSubmit = () => {
@@ -607,7 +576,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         const daysLimit = allowedData.message && allowedData.message.length > 1 ? Number(allowedData.message[1]) : 30;
         setMaxIssueDays(daysLimit);
         localDaysLimit = daysLimit;
-        
+
         if (allowedData.message.length == 0) {
           toast.error(allowedData.message);
           setMember(null);
@@ -678,8 +647,6 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         setDropdownActive={setDropdownActive}
         memberSuggestions={memberSuggestions}
         handleSuggestionClick={handleSuggestionClick}
-        onAddBook={onAddBook}
-        bookMutation={bookMutation}
         getAssetDetailFun={getAssetDetailFun}
         scannedBook={scannedBook}
         activeTab={activeTab}
@@ -731,7 +698,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         <RenewTab assetData={tabAssetData} loading={tabAssetLoading} renewMutation={renewMutation} onSubmitRenew={onSubmitRenew} hasDueCharges={hasDueCharges} />
       </div>
       <div className={cn(activeTab !== "reservation" && "hidden", "mt-1")}>
-        <ReservationTab 
+        <ReservationTab
           reservedAssets={reservedAssets}
           reservationDate={reservationDate}
           setReservationDate={setReservationDate}

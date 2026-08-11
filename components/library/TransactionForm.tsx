@@ -10,7 +10,7 @@ import { IssueFormValues, AssetDoc, MemberSuggestion, TabAssetData } from "./Tra
 import { getMemberImage } from "@/services/members";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { toast } from "react-toastify";
-import { searchBooks, selectBook, type SearchBookResult, type SelectBookResult } from "@/services/books";
+import { searchFrappeLink, selectBook, type SearchLinkResult, type SelectBookResult } from "@/services/books";
 export const MemberDetails = ({ member }: { member: Member }) => {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
@@ -139,8 +139,7 @@ export interface TransactionFormProps {
   setDropdownActive: (v: boolean) => void;
   memberSuggestions: MemberSuggestion[];
   handleSuggestionClick: (v: string) => void;
-  onAddBook: () => void;
-  bookMutation: any;
+
   getAssetDetailFun: (v: string) => void;
   scannedBook: Book | null;
   activeTab: string;
@@ -165,8 +164,7 @@ export const TransactionForm = ({
   setDropdownActive,
   memberSuggestions,
   handleSuggestionClick,
-  onAddBook,
-  bookMutation,
+
   getAssetDetailFun,
   scannedBook,
   activeTab,
@@ -179,7 +177,7 @@ export const TransactionForm = ({
 }: TransactionFormProps) => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
 
-  const [bookSuggestions, setBookSuggestions] = useState<SearchBookResult[]>([]);
+  const [bookSuggestions, setBookSuggestions] = useState<SearchLinkResult[]>([]);
   const [bookInputFocused, setBookInputFocused] = useState(false);
   const [bookDropdownActive, setBookDropdownActive] = useState(false);
   const [bookLoading, setBookLoading] = useState(false);
@@ -195,7 +193,7 @@ export const TransactionForm = ({
     }
     setBookLoading(true);
     try {
-      const result = await searchBooks({ txt: query });
+      const result = await searchFrappeLink({ txt: query, doctype: "Book", reference_doctype: "Book Reservation" });
       setBookSuggestions(result.message ?? []);
     } catch (error) {
       setBookSuggestions([]);
@@ -396,7 +394,6 @@ export const TransactionForm = ({
                             }
                             if (event.key === "Enter") {
                               event.preventDefault();
-                              // void onAddBook();
                               getAssetDetailFun(field.value);
                             }
                           }}
@@ -432,8 +429,8 @@ export const TransactionForm = ({
               />
               {
                 activeTab !== "reservation" &&
-                <Button type="button" variant="secondary" onClick={() => setIsScannerOpen(true)} disabled={bookMutation.isPending} className="md:mt-6">
-                  {bookMutation.isPending ? <Loader2 className="animate-spin" /> : <ScanLine />}
+                <Button type="button" variant="secondary" onClick={() => setIsScannerOpen(true)} className="md:mt-6">
+                  <ScanLine />
                   Add book
                 </Button>
               }

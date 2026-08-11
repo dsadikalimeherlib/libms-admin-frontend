@@ -7,7 +7,7 @@ import { UseFormReturn } from "react-hook-form";
 import type { IssuePreviewRow, Member } from "@/lib/mock-library-api";
 import { IssueFormValues, TabAssetData, SubmitBar, OtpVerificationDialog } from "./TransactionTabs";
 import { Button } from "@/components/ui/button";
-import { submitBookIssue, generateOTP, getBookTransaction } from "@/services/books";
+import { submitBookTransaction, generateOTP, getBookTransaction } from "@/services/books";
 import { toast } from "react-toastify";
 
 export interface IssueTabProps {
@@ -124,7 +124,8 @@ export const IssueTab = ({
     setVerifying(true);
     try {
       // Step 1: Save the transaction (action="Save") to obtain a docname
-      const saved = await submitBookIssue({
+      const saved = await submitBookTransaction({
+        transaction_type: "Issue",
         member,
         queuedBooks,
         barcode: form.getValues("barcode"),
@@ -178,7 +179,8 @@ export const IssueTab = ({
     }
     setOtpVerifying(true);
     try {
-      const res = await submitBookIssue({
+      const res = await submitBookTransaction({
+        transaction_type: "Issue",
         member,
         queuedBooks,
         barcode: form.getValues("barcode"),
@@ -262,8 +264,8 @@ export const IssueTab = ({
                     <TableCell>{book.transactionDate ? format(new Date(book.transactionDate), 'dd-MM-yyyy') : "—"}</TableCell>
                     <TableCell>{book.dueDate ? format(new Date(book.dueDate), 'dd-MM-yyyy') : "—"}</TableCell>
                     <TableCell>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className="text-sm font-medium text-destructive hover:underline"
                         onClick={() => setQueuedBooks && setQueuedBooks(queuedBooks.filter(b => b.barcode !== book.barcode))}
                       >

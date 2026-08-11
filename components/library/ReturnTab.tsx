@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { formatDisplayDate, Member } from "@/lib/mock-library-api";
 import { TabAssetData, EmptyStateRow, SubmitBar, OtpVerificationDialog } from "./TransactionTabs";
-import { submitBookReturn, generateOTP, getBookTransaction } from "@/services/books";
+import { submitBookTransaction, generateOTP, getBookTransaction } from "@/services/books";
 import { toast } from "react-toastify";
 
 export const ReturnTab = ({
@@ -66,7 +66,8 @@ export const ReturnTab = ({
     }
     setVerifying(true);
     try {
-      const saved = await submitBookReturn({
+      const saved = await submitBookTransaction({
+        transaction_type: "Return",
         member,
         queuedAssets: queuedAssets as any,
         totalDueCharges,
@@ -119,7 +120,8 @@ export const ReturnTab = ({
     }
     setOtpVerifying(true);
     try {
-      const res = await submitBookReturn({
+      const res = await submitBookTransaction({
+        transaction_type: "Return",
         member,
         queuedAssets: queuedAssets as any,
         totalDueCharges,

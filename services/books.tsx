@@ -1,5 +1,43 @@
 import { Book } from "../lib/mock-library-api";
 
+
+const formatDate = (isoString: string) => {
+    const d = new Date(isoString);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+export const submitFrappeDocument = async (doc: any, action: string, access_token: string, errorMessage: string) => {
+    const params = new URLSearchParams({
+        doc: JSON.stringify(doc),
+        action: action,
+    });
+
+    const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.form.save.savedocs`,
+        {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+                Accept: "application/json",
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: params.toString(),
+        }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        throw new Error(data.error || errorMessage);
+    }
+
+    return data;
+};
+
 export const getBookTransactionDetails = async ({
     barcode,
     member,
@@ -45,144 +83,15 @@ export const getBookTransactionDetails = async ({
     };
 }
 
-export const submitBookIssue = async ({
+
+import { redirectToLogin } from "@/lib/utils";
+
+export const submitBookTransaction = async ({
+    transaction_type,
     member,
     queuedBooks,
-    barcode = "",
-    action = "Submit",
-    savedDocName,
-    otp,
-    otp_verified
-}: {
-    member: any;
-    queuedBooks: any[];
-    barcode?: string;
-    action?: string;
-    savedDocName?: string;
-    otp?: string;
-    otp_verified?: number;
-}) => {
-
-    const token = localStorage.getItem('token');
-    if (!token) {
-        throw new Error('No token found');
-    }
-
-    const { access_token } = JSON.parse(token);
-
-    // Format dates to YYYY-MM-DD
-    const formatDate = (isoString: string) => {
-        const d = new Date(isoString);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
-
-    let doc: any;
-
-    if (savedDocName) {
-        const getRes = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.get?doctype=Book+Transaction&name=${savedDocName}`,
-            {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${access_token}`,
-                    Accept: "application/json",
-                },
-            }
-        );
-        const getData = await getRes.json();
-
-        if (!getRes.ok) {
-            throw new Error(getData.error || "Failed to fetch existing transaction");
-        }
-
-        doc = getData.message;
-        if (otp) {
-            doc.otp = otp;
-            doc.otp_verified = otp_verified;
-        }
-    } else {
-        const docName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
-        doc = {
-            docstatus: 0,
-            doctype: "Book Transaction",
-            name: docName,
-            __islocal: 1,
-            __unsaved: 1,
-            transaction_type: "Issue",
-            member: member.name,
-            member_name: member.member_name || member.name,
-            membership_status: member.membership_status || "Active",
-            mobile: member.mobile || "",
-            otp: otp || null,
-            otp_verified: otp_verified,
-            issued_book: 0,
-            scan_barcode: barcode,
-            create_invoice: 0,
-            total_due_charges: 0,
-            book_transaction_detail: queuedBooks.map((book, idx) => ({
-                docstatus: 0,
-                doctype: "Book Transaction Detail",
-                name: `new-book-transaction-detail-${Math.random().toString(36).substring(2, 12)}`,
-                __islocal: 1,
-                __unsaved: 1,
-                access_no: book.accessNo,
-                book_title: book.title,
-                author: book.author || "",
-                language: book.language || "",
-                transaction_date: formatDate(book.transactionDate),
-                due_date: formatDate(book.dueDate),
-                status: "Available",
-                parent: docName,
-                parentfield: "book_transaction_detail",
-                parenttype: "Book Transaction",
-                idx: idx + 1
-            }))
-        };
-    }
-
-    const params = new URLSearchParams({
-        doc: JSON.stringify(doc),
-        action: action,
-    });
-
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.form.save.savedocs`,
-        {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: "application/json",
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                "X-Requested-With": "XMLHttpRequest",
-            },
-            body: params.toString(),
-        }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) {
-        throw new Error(data.error || "Failed to submit book issue transaction");
-    }
-
-    const returnedDoc = data.docs?.[0] || data.message || {};
-
-    return {
-        name: data.docinfo?.name || returnedDoc.name || "",
-        member: {
-            name: returnedDoc.member_name || member.member_name || member.name
-        },
-        rows: returnedDoc.book_transaction_detail || queuedBooks,
-        otp_verified: returnedDoc.otp_verified
-    };
-};
-
-export const submitBookReturn = async ({
-    member,
     queuedAssets,
+    barcode = "",
     totalDueCharges = 0,
     createInvoice = 0,
     action = "Submit",
@@ -190,8 +99,11 @@ export const submitBookReturn = async ({
     otp,
     otp_verified
 }: {
+    transaction_type: "Issue" | "Return";
     member: any;
-    queuedAssets: AssetByBarcodeMessage[];
+    queuedBooks?: any[];
+    queuedAssets?: import('./books').AssetByBarcodeMessage[];
+    barcode?: string;
     totalDueCharges?: number;
     createInvoice?: number;
     action?: string;
@@ -203,13 +115,7 @@ export const submitBookReturn = async ({
     if (!token) throw new Error('No token found');
     const { access_token } = JSON.parse(token);
 
-    const formatDate = (isoString: string) => {
-        const d = new Date(isoString);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    };
-
     let doc: any;
-
     if (savedDocName) {
         const getRes = await fetch(
             `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.get?doctype=Book+Transaction&name=${savedDocName}`,
@@ -222,11 +128,9 @@ export const submitBookReturn = async ({
             }
         );
         const getData = await getRes.json();
-
         if (!getRes.ok) {
             throw new Error(getData.error || "Failed to fetch existing transaction");
         }
-
         doc = getData.message;
         if (otp) {
             doc.otp = otp;
@@ -234,78 +138,109 @@ export const submitBookReturn = async ({
         }
     } else {
         const today = formatDate(new Date().toISOString());
-        const tempName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
+        const docName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
 
-        doc = {
-            docstatus: 0,
-            doctype: "Book Transaction",
-            name: tempName,
-            __islocal: 1,
-            __unsaved: 1,
-            transaction_type: "Return",
-            member: member.name,
-            member_name: member.member_name || member.name,
-            membership_status: member.membership_status || "Active",
-            mobile: member.mobile || "",
-            otp: otp || null,
-            otp_verified: otp_verified || 0,
-            scan_barcode: "",
-            create_invoice: createInvoice,
-            total_due_charges: totalDueCharges,
-            book_transaction_detail: [],
-            renew_book_details: [],
-            return_book_details: queuedAssets.map((asset, idx) => {
-                const md = asset.member_details;
-                return {
+        if (transaction_type === "Issue") {
+            doc = {
+                docstatus: 0,
+                doctype: "Book Transaction",
+                name: docName,
+                __islocal: 1,
+                __unsaved: 1,
+                transaction_type: "Issue",
+                member: member.name,
+                member_name: member.member_name || member.name,
+                membership_status: member.membership_status || "Active",
+                mobile: member.mobile || "",
+                otp: otp || null,
+                otp_verified: otp_verified,
+                issued_book: 0,
+                scan_barcode: barcode,
+                create_invoice: 0,
+                total_due_charges: 0,
+                book_transaction_detail: (queuedBooks || []).map((book: any, idx: number) => ({
                     docstatus: 0,
-                    doctype: "Return Book Details",
-                    name: `new-return-book-details-${Math.random().toString(36).substring(2, 12)}`,
+                    doctype: "Book Transaction Detail",
+                    name: `new-book-transaction-detail-${Math.random().toString(36).substring(2, 12)}`,
                     __islocal: 1,
                     __unsaved: 1,
-                    access_no: asset.asset_id,
-                    book_title: asset.asset_name,
-                    transaction_date: md?.transaction_date || today,
-                    due_date: md?.due_date || today,
-                    return_date: today,
-                    due_charges: 0, // Wait, maybe we should map asset.total_due_charges? For now keeping 0 like before
-                    transaction_no: md?.name || "",
-                    parent: tempName,
-                    parentfield: "return_book_details",
+                    access_no: book.accessNo,
+                    book_title: book.title,
+                    author: book.author || "",
+                    language: book.language || "",
+                    transaction_date: formatDate(book.transactionDate),
+                    due_date: formatDate(book.dueDate),
+                    status: "Available",
+                    parent: docName,
+                    parentfield: "book_transaction_detail",
                     parenttype: "Book Transaction",
-                    idx: idx + 1,
-                };
-            }),
-        };
+                    idx: idx + 1
+                }))
+            };
+        } else {
+            doc = {
+                docstatus: 0,
+                doctype: "Book Transaction",
+                name: docName,
+                __islocal: 1,
+                __unsaved: 1,
+                transaction_type: "Return",
+                member: member.name,
+                member_name: member.member_name || member.name,
+                membership_status: member.membership_status || "Active",
+                mobile: member.mobile || "",
+                otp: otp || null,
+                otp_verified: otp_verified || 0,
+                scan_barcode: "",
+                create_invoice: createInvoice,
+                total_due_charges: totalDueCharges,
+                book_transaction_detail: [],
+                renew_book_details: [],
+                return_book_details: (queuedAssets || []).map((asset: any, idx: number) => {
+                    const md = asset.member_details;
+                    return {
+                        docstatus: 0,
+                        doctype: "Return Book Details",
+                        name: `new-return-book-details-${Math.random().toString(36).substring(2, 12)}`,
+                        __islocal: 1,
+                        __unsaved: 1,
+                        access_no: asset.asset_id,
+                        book_title: asset.asset_name,
+                        transaction_date: md?.transaction_date || today,
+                        due_date: md?.due_date || today,
+                        return_date: today,
+                        due_charges: 0,
+                        transaction_no: md?.name || "",
+                        parent: docName,
+                        parentfield: "return_book_details",
+                        parenttype: "Book Transaction",
+                        idx: idx + 1,
+                    };
+                }),
+            };
+        }
     }
 
-    const params = new URLSearchParams({
-        doc: JSON.stringify(doc),
-        action: action,
-    });
-
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.form.save.savedocs`,
-        {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: "application/json",
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                "X-Requested-With": "XMLHttpRequest",
-            },
-            body: params.toString(),
-        }
-    );
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to submit return transaction");
-
+    const data = await submitFrappeDocument(doc, action, access_token, `Failed to submit ${transaction_type.toLowerCase()} transaction`);
     const returnedDoc = data.docs?.[0] || data.message || {};
-    return {
-        name: data.docinfo?.name || returnedDoc.name || "",
-        otp_verified: returnedDoc.otp_verified
-    };
+
+    if (transaction_type === "Issue") {
+        return {
+            name: data.docinfo?.name || returnedDoc.name || "",
+            member: {
+                name: returnedDoc.member_name || member.member_name || member.name
+            },
+            rows: returnedDoc.book_transaction_detail || queuedBooks,
+            otp_verified: returnedDoc.otp_verified
+        };
+    } else {
+        return {
+            name: data.docinfo?.name || returnedDoc.name || "",
+            otp_verified: returnedDoc.otp_verified
+        };
+    }
 };
+
 
 export const submitBookRenew = async ({
     member,
@@ -374,27 +309,7 @@ export const submitBookRenew = async ({
         ],
     };
 
-    const params = new URLSearchParams({
-        doc: JSON.stringify(doc),
-        action: "Submit",
-    });
-
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.form.save.savedocs`,
-        {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: "application/json",
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                "X-Requested-With": "XMLHttpRequest",
-            },
-            body: params.toString(),
-        }
-    );
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to submit renew transaction");
+    const data = await submitFrappeDocument(doc, "Submit", access_token, "Failed to submit renew transaction");
     return data.docs?.[0] || data.message || {};
 };
 
@@ -647,33 +562,42 @@ export const countBooksIssued = async ({
     return data;
 }
 
-export interface SearchBookResult {
+export interface SearchLinkResult {
     value: string;
     description: string;
 }
 
-export const searchBooks = async ({
+
+export const searchFrappeLink = async ({
     txt,
-    doctype = "Book",
-    reference_doctype = "Book Reservation",
-    page_length = 25
+    doctype,
+    reference_doctype,
+    page_length = 25,
+    filters
 }: {
     txt: string;
-    doctype?: string;
-    reference_doctype?: string;
+    doctype: string;
+    reference_doctype: string;
     page_length?: number;
-}): Promise<{ message: SearchBookResult[] }> => {
+    filters?: Record<string, any>;
+}): Promise<{ message: SearchLinkResult[] }> => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('No token found');
     const { access_token } = JSON.parse(token);
 
-    const body = new URLSearchParams({
+    const body: Record<string, string> = {
         txt,
         doctype,
         ignore_user_permissions: "0",
         reference_doctype,
         page_length: page_length.toString()
-    });
+    };
+
+    if (filters) {
+        body.filters = JSON.stringify(filters);
+    }
+
+    const params = new URLSearchParams(body);
 
     const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.search.search_link`,
@@ -686,13 +610,18 @@ export const searchBooks = async ({
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-Frappe-CMD': '',
             },
-            body: body.toString(),
+            body: params.toString(),
         }
     );
 
+    if (res.status === 401) {
+        redirectToLogin(true);
+        return { message: [] };
+    }
+
     const data = await res.json();
 
-    if (!res.ok) throw new Error(data.message || data.error || 'Failed to search books');
+    if (!res.ok) throw new Error(data.message || data.error || 'Failed to search');
 
     return data;
 };
@@ -790,28 +719,6 @@ export const submitBookReservation = async ({
         book: book
     };
 
-    const params = new URLSearchParams({
-        doc: JSON.stringify(doc),
-        action: "Save",
-    });
-
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.form.save.savedocs`,
-        {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: "application/json",
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                "X-Requested-With": "XMLHttpRequest",
-            },
-            body: params.toString(),
-        }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.error || "Failed to submit book reservation");
-
+    const data = await submitFrappeDocument(doc, "Save", access_token, "Failed to submit book reservation");
     return data.docs?.[0] || data.message || {};
 };

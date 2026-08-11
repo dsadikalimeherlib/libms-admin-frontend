@@ -15,6 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { authenticateUser } from "@/lib/mock-library-api";
+import { redirectToLogin } from "@/lib/utils";
 
 const loginSchema = z.object({
   identifier: z.string().trim().min(3, "Enter your email or username."),
@@ -57,12 +58,7 @@ export default function Home() {
   });
 
   const login = () => {
-    window.location.href =
-      `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.integrations.oauth2.authorize` +
-      `?client_id=${process.env.NEXT_PUBLIC_CLIENT_ID}` +
-      `&redirect_uri=${process.env.NEXT_PUBLIC_APP_URL}/callback` +
-      "&response_type=code" +
-      "&scope=all";
+    redirectToLogin();
   };
 
 

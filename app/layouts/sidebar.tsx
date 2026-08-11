@@ -35,7 +35,7 @@ const Sidebar = () => {
                                     stroke="currentColor" strokeWidth="2" />
                                 <path
                                     d="M11.4792 16.625V12.875C11.4792 12.3227 11.0315 11.875 10.4792 11.875H8.52087C7.96859 11.875 7.52087 12.3227 7.52087 12.875V16.625"
-                                    stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         }
                     />
@@ -49,7 +49,7 @@ const Sidebar = () => {
                                     d="M15.8333 9.5V12.625C15.8333 14.5106 15.8333 15.4534 15.2475 16.0392C14.6617 16.625 13.7189 16.625 11.8333 16.625H5.14579C4.05273 16.625 3.16663 15.7389 3.16663 14.6458V14.6458C3.16663 13.5528 4.05273 12.6667 5.14579 12.6667H11.8333C13.7189 12.6667 14.6617 12.6667 15.2475 12.0809C15.8333 11.4951 15.8333 10.5523 15.8333 8.66667V6.375C15.8333 4.48938 15.8333 3.54657 15.2475 2.96079C14.6617 2.375 13.7189 2.375 11.8333 2.375H7.16663C5.28101 2.375 4.3382 2.375 3.75241 2.96079C3.16663 3.54657 3.16663 4.48938 3.16663 6.375V14.6458"
                                     stroke="currentColor" strokeWidth="2" />
                                 <path d="M7.125 6.33331L11.875 6.33331" stroke="currentColor" strokeWidth="2"
-                                    stroke-linecap="round" />
+                                    strokeLinecap="round" />
                             </svg>
                         }
                     />
