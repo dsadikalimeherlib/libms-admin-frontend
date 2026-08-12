@@ -674,13 +674,15 @@ export const submitBookReservation = async ({
     book,
     bookTitle,
     reservationDate,
-    reservedAssets
+    reservedAssets,
+    reservation_remarks
 }: {
     member: any;
     book: string;
     bookTitle: string;
     reservationDate: string;
     reservedAssets: SelectBookResult[];
+    reservation_remarks?: string;
 }) => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('No token found');
@@ -696,6 +698,7 @@ export const submitBookReservation = async ({
         __unsaved: 1,
         status: "Requested",
         reservation_date: reservationDate,
+        reservation_remarks: reservation_remarks || "",
         book_reservation_details: reservedAssets.map((asset, idx) => ({
             docstatus: 0,
             doctype: "Book Reservation Details",

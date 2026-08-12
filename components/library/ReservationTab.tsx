@@ -8,14 +8,20 @@ export const ReservationTab = ({
   reservedAssets = [],
   reservationDate,
   setReservationDate,
+  reservationRemarks,
+  setReservationRemarks,
   onSubmit,
-  loading
+  loading,
+  submitDisabled
 }: {
   reservedAssets?: SelectBookResult[];
   reservationDate?: string;
   setReservationDate?: (val: string) => void;
+  reservationRemarks?: string;
+  setReservationRemarks?: (val: string) => void;
   onSubmit?: () => void;
   loading?: boolean;
+  submitDisabled?: boolean;
 }) => {
   return (
     <div className="space-y-8 p-1 pt-4">
@@ -43,7 +49,11 @@ export const ReservationTab = ({
 
           <div className="space-y-1">
             <label className="text-sm font-medium text-foreground">Reservation Remarks</label>
-            <textarea className="flex min-h-[150px] w-full rounded-md border border-muted bg-muted/30 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" readOnly />
+            <textarea
+              className="flex min-h-[150px] w-full rounded-md border border-muted bg-muted/30 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              value={reservationRemarks || ""}
+              onChange={(e) => setReservationRemarks?.(e.target.value)}
+            />
           </div>
         </div>
 
@@ -101,7 +111,7 @@ export const ReservationTab = ({
       <div className="flex justify-end items-center w-full">
         <button
           onClick={onSubmit}
-          disabled={loading}
+          disabled={loading || submitDisabled}
           className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md flex items-center justify-center disabled:opacity-50"
         >
           {loading && <Loader2 className="animate-spin mr-2 h-4 w-4" />}

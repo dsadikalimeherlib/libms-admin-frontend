@@ -217,13 +217,22 @@ export const TransactionForm = ({
     };
   }, [watchedBarcode, activeTab]);
 
-  const handleBookSuggestionClick = async (selectionValue: string) => {
+  const handleBookSuggestionClick = async (suggestion: SearchLinkResult) => {
+    const selectionValue = suggestion.value;
     skipNextBarcodeSearchRef.current = true;
     form.setValue("barcode", selectionValue, { shouldValidate: true });
     setBookSuggestions([]);
     setBookDropdownActive(false);
 
     if (activeTab === "reservation") {
+      setScannedBook({
+        barcode: suggestion.value,
+        accessNo: "",
+        title: suggestion.description || suggestion.value,
+        author: "",
+        language: "",
+        volume: "",
+      } as Book);
       try {
         const result = await selectBook({ item_code: selectionValue });
         if (setReservedAssets) {
@@ -416,7 +425,7 @@ export const TransactionForm = ({
                           <div
                             key={idx}
                             className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
-                            onClick={() => handleBookSuggestionClick(m.value)}
+                            onClick={() => handleBookSuggestionClick(m)}
                           >
                             <div className="font-medium">{m.value}</div>
                             <div className="text-sm text-muted-foreground">{m.description}</div>

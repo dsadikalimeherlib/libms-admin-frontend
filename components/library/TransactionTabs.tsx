@@ -270,6 +270,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
   const [hasDueCharges, setHasDueCharges] = useState(false);
   const [reservedAssets, setReservedAssets] = useState<SelectBookResult[]>([]);
   const [reservationDate, setReservationDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [reservationRemarks, setReservationRemarks] = useState<string>("");
   const [maxIssueDays, setMaxIssueDays] = useState<number>(30);
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -382,7 +383,8 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         book: itemCode,
         bookTitle,
         reservationDate,
-        reservedAssets
+        reservedAssets,
+        reservation_remarks: reservationRemarks
       });
     },
     onSuccess: () => {
@@ -390,6 +392,9 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       setMember(null);
       form.setValue("memberQuery", "", { shouldValidate: false });
       form.setValue("barcode", "", { shouldValidate: false });
+      setScannedBook(null);
+      setReservationDate(format(new Date(), 'yyyy-MM-dd'));
+      setReservationRemarks("");
       toast.success("Book reservation created successfully.");
       queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
     },
@@ -444,6 +449,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
     setHasDueCharges(false);
     setReservedAssets([]);
     setReservationDate(format(new Date(), 'yyyy-MM-dd'));
+    setReservationRemarks("");
     if (setDueMessage) setDueMessage(null);
     form.reset();
   };
@@ -702,8 +708,11 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
           reservedAssets={reservedAssets}
           reservationDate={reservationDate}
           setReservationDate={setReservationDate}
+          reservationRemarks={reservationRemarks}
+          setReservationRemarks={setReservationRemarks}
           onSubmit={onSubmitReservation}
           loading={reservationMutation.isPending}
+          submitDisabled={!member || reservedAssets.length === 0}
         />
       </div>
     </div>
