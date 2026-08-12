@@ -272,6 +272,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
   const [reservationDate, setReservationDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [reservationRemarks, setReservationRemarks] = useState<string>("");
   const [maxIssueDays, setMaxIssueDays] = useState<number>(30);
+  const [issuedCount, setIssuedCount] = useState<number>(0);
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const skipNextSearchRef = useRef(false);
@@ -472,13 +473,14 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       if (activeTab === 'issue' || activeTab === 'reservation') {
         const issuedCountData = await countBooksIssued({ member: selectionValue });
         const limitData = await validateMemberToIssueBook({ member: selectionValue });
-        const issuedCount = issuedCountData?.message?.count || 0;
+        const currentIssuedCount = issuedCountData?.message?.count || 0;
+        setIssuedCount(currentIssuedCount);
         const limitArray = limitData?.message;
         const limit = limitArray && limitArray.length > 0 ? Number(limitArray[0]) : 0;
         const daysLimit = limitArray && limitArray.length > 1 ? Number(limitArray[1]) : 30;
         setMaxIssueDays(daysLimit);
 
-        if (limit <= issuedCount) {
+        if (limit <= currentIssuedCount) {
           toast.error(`Not allowed more than given limit ${limit} books`);
           setMember(null);
           form.setValue("memberQuery", "", { shouldValidate: false });
@@ -662,6 +664,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         memberLoading={memberLoading}
         hasDueCharges={hasDueCharges}
         setReservedAssets={setReservedAssets}
+        issuedCount={issuedCount}
       />
 
       <div className={cn(activeTab !== "issue" && "hidden", "mt-1")}>

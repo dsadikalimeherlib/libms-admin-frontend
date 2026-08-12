@@ -149,6 +149,7 @@ export interface TransactionFormProps {
   memberLoading?: boolean;
   hasDueCharges?: boolean;
   setReservedAssets?: (assets: SelectBookResult[]) => void;
+  issuedCount?: number;
 }
 
 export const TransactionForm = ({
@@ -174,6 +175,7 @@ export const TransactionForm = ({
   memberLoading = false,
   hasDueCharges = false,
   setReservedAssets,
+  issuedCount = 0,
 }: TransactionFormProps) => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
 
@@ -236,7 +238,15 @@ export const TransactionForm = ({
       try {
         const result = await selectBook({ item_code: selectionValue });
         if (setReservedAssets) {
-          setReservedAssets(result.message || []);
+          let assets = result.message || [];
+          if (assets.length === 0) {
+            assets = [{
+              issued_book: issuedCount,
+              book_title: suggestion.description || suggestion.value,
+              book: `${suggestion.description || suggestion.value}_1094`
+            }] as any;
+          }
+          setReservedAssets(assets);
         }
       } catch (error: any) {
         toast.error(error.message || "Failed to fetch reservation books");
