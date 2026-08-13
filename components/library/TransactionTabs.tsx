@@ -274,6 +274,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
   const [reservationRemarks, setReservationRemarks] = useState<string>("");
   const [maxIssueDays, setMaxIssueDays] = useState<number>(30);
   const [issuedCount, setIssuedCount] = useState<number>(0);
+  const [maxIssueLimit, setMaxIssueLimit] = useState<number>(0);
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const skipNextSearchRef = useRef(false);
@@ -387,7 +388,8 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         bookTitle,
         reservationDate,
         reservedAssets,
-        reservation_remarks: reservationRemarks
+        reservation_remarks: reservationRemarks,
+        issuedCount
       });
     },
     onSuccess: () => {
@@ -451,6 +453,8 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
     setDropdownActive(false);
     setHasDueCharges(false);
     setReservedAssets([]);
+    setIssuedCount(0);
+    setMaxIssueLimit(0);
     setReservationDate(format(new Date(), 'yyyy-MM-dd'));
     setReservationRemarks("");
     setReturnDate(format(new Date(), 'yyyy-MM-dd'));
@@ -482,6 +486,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         const limit = limitArray && limitArray.length > 0 ? Number(limitArray[0]) : 0;
         const daysLimit = limitArray && limitArray.length > 1 ? Number(limitArray[1]) : 30;
         setMaxIssueDays(daysLimit);
+        setMaxIssueLimit(limit);
 
         if (limit <= currentIssuedCount) {
           toast.error(`Not allowed more than given limit ${limit} books`);
@@ -576,7 +581,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         const memberId = data.member_details.member;
         form.setValue("memberQuery", memberId, { shouldValidate: false });
         const validatedMember = await validateMembers({ text: memberId });
-        await validateMemberToIssueBook({ member: memberId });
+        // await validateMemberToIssueBook({ member: memberId });
         setMember(validatedMember);
       }
 
@@ -674,6 +679,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         hasDueCharges={hasDueCharges}
         setReservedAssets={setReservedAssets}
         issuedCount={issuedCount}
+        maxIssueLimit={maxIssueLimit}
       />
 
       <div className={cn(activeTab !== "issue" && "hidden", "mt-1")}>

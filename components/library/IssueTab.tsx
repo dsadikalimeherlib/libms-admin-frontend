@@ -71,18 +71,44 @@ export const IssueTab = ({
   }, [member?.name]);
 
   useEffect(() => {
-    // Clear issue and due date if member or queued books change
+    // Recalculate due date if member or maxIssueDays change
     if (queuedBooks.length > 0 && setQueuedBooks) {
-      if (queuedBooks.some(b => b.transactionDate || b.dueDate)) {
-        setQueuedBooks(queuedBooks.map(b => ({ ...b, transactionDate: "", dueDate: "" })));
+      let changed = false;
+      const updatedBooks = queuedBooks.map(b => {
+        if (!b.transactionDate) return b;
+        let newDueDateStr = format(addDays(new Date(b.transactionDate), maxIssueDays || 30), 'yyyy-MM-dd');
+        if (member?.due_date) {
+          const memberDueDate = new Date(member.due_date);
+          if (new Date(newDueDateStr) > memberDueDate) {
+            newDueDateStr = format(memberDueDate, 'yyyy-MM-dd');
+          }
+        }
+        if (b.dueDate !== newDueDateStr) {
+          changed = true;
+          return { ...b, dueDate: newDueDateStr };
+        }
+        return b;
+      });
+      if (changed) {
+        setQueuedBooks(updatedBooks);
       }
     }
+
     if (assetData && setTabAssetData) {
-      if (assetData.transactionDate || assetData.dueDate) {
-        setTabAssetData({ ...assetData, transactionDate: "", dueDate: "" });
+      if (assetData.transactionDate) {
+        let newDueDateStr = format(addDays(new Date(assetData.transactionDate), maxIssueDays || 30), 'yyyy-MM-dd');
+        if (member?.due_date) {
+          const memberDueDate = new Date(member.due_date);
+          if (new Date(newDueDateStr) > memberDueDate) {
+            newDueDateStr = format(memberDueDate, 'yyyy-MM-dd');
+          }
+        }
+        if (assetData.dueDate !== newDueDateStr) {
+          setTabAssetData({ ...assetData, dueDate: newDueDateStr });
+        }
       }
     }
-  }, [member?.name, queuedBooks.length]);
+  }, [member?.name, maxIssueDays, queuedBooks.length]);
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDateStr = e.target.value;

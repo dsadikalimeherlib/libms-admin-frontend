@@ -675,7 +675,8 @@ export const submitBookReservation = async ({
     bookTitle,
     reservationDate,
     reservedAssets,
-    reservation_remarks
+    reservation_remarks,
+    issuedCount = 0
 }: {
     member: any;
     book: string;
@@ -683,28 +684,36 @@ export const submitBookReservation = async ({
     reservationDate: string;
     reservedAssets: SelectBookResult[];
     reservation_remarks?: string;
+    issuedCount?: number;
 }) => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('No token found');
-    const { access_token } = JSON.parse(token);
+    let access_token = "";
+    let owner = "test_user@gmail.com";
+    try {
+        const parsed = JSON.parse(token);
+        access_token = parsed.access_token;
+        if (parsed.user_id) owner = parsed.user_id;
+    } catch(e) {}
 
     const docName = `new-book-reservation-${Math.random().toString(36).substring(2, 12)}`;
 
-    const doc = {
+    const doc: any = {
         docstatus: 0,
         doctype: "Book Reservation",
         name: docName,
         __islocal: 1,
         __unsaved: 1,
+        owner,
         status: "Requested",
         reservation_date: reservationDate,
-        reservation_remarks: reservation_remarks || "",
         book_reservation_details: reservedAssets.map((asset, idx) => ({
             docstatus: 0,
             doctype: "Book Reservation Details",
             name: `new-book-reservation-details-${Math.random().toString(36).substring(2, 12)}`,
             __islocal: 1,
             __unsaved: 1,
+            owner,
             parent: docName,
             parentfield: "book_reservation_details",
             parenttype: "Book Reservation",
@@ -717,10 +726,14 @@ export const submitBookReservation = async ({
         mobile: member.mobile || "",
         notify_by: "None",
         member: member.name,
-        issued_book: member.issued_book || 0,
+        issued_book: issuedCount,
         book_title: bookTitle,
         book: book
     };
+
+    if (reservation_remarks) {
+        doc.reservation_remarks = reservation_remarks;
+    }
 
     const data = await submitFrappeDocument(doc, "Save", access_token, "Failed to submit book reservation");
     return data.docs?.[0] || data.message || {};

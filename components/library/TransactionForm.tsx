@@ -11,7 +11,7 @@ import { getMemberImage } from "@/services/members";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { toast } from "react-toastify";
 import { searchFrappeLink, selectBook, type SearchLinkResult, type SelectBookResult } from "@/services/books";
-export const MemberDetails = ({ member }: { member: Member }) => {
+export const MemberDetails = ({ member, issuedCount, maxIssueLimit }: { member: Member, issuedCount: number, maxIssueLimit: number }) => {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -60,6 +60,19 @@ export const MemberDetails = ({ member }: { member: Member }) => {
               <span className="data-chip">{member.membership_status}</span>
             </div>
           </div>
+          <div>
+            <p className="section-heading">Books Issued</p>
+            <div className="mt-1 flex items-center gap-2">
+              <p className="mt-1 text-sm text-foreground">{issuedCount}</p>
+            </div>
+          </div>
+          <div>
+            <p className="section-heading">Book Issue Limit</p>
+            <div className="mt-1 flex items-center gap-2">
+              <p className="mt-1 text-sm text-foreground">{maxIssueLimit}</p>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -150,6 +163,7 @@ export interface TransactionFormProps {
   hasDueCharges?: boolean;
   setReservedAssets?: (assets: SelectBookResult[]) => void;
   issuedCount?: number;
+  maxIssueLimit?: number;
 }
 
 export const TransactionForm = ({
@@ -176,6 +190,7 @@ export const TransactionForm = ({
   hasDueCharges = false,
   setReservedAssets,
   issuedCount = 0,
+  maxIssueLimit = 0,
 }: TransactionFormProps) => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
 
@@ -367,7 +382,7 @@ export const TransactionForm = ({
                 )}
               />
             </div>
-            {member ? <MemberDetails member={member} /> : null}
+            {member ? <MemberDetails member={member} issuedCount={issuedCount} maxIssueLimit={maxIssueLimit} /> : null}
           </section>
 
           <section className="space-y-4 flex-1">
