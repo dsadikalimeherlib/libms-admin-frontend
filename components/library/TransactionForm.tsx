@@ -202,6 +202,8 @@ export const TransactionForm = ({
   const watchedBarcode = form.watch("barcode");
   const barcodeDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const skipNextBarcodeSearchRef = useRef(false);
+  const memberInputRef = useRef<HTMLInputElement>(null);
+  const bookInputRef = useRef<HTMLInputElement>(null);
 
   const loadBookSuggestions = async (query: string) => {
     if (activeTab !== "reservation" || !query || query.length < 3) {
@@ -298,6 +300,9 @@ export const TransactionForm = ({
               form.clearErrors();
               form.setValue("memberQuery", "", { shouldValidate: false });
               form.setValue("barcode", "", { shouldValidate: false });
+              setTimeout(() => {
+                memberInputRef.current?.focus();
+              }, 10);
             }}
           >
             <SelectTrigger className="w-full">
@@ -348,6 +353,10 @@ export const TransactionForm = ({
                       <div className="relative">
                         <Input
                           {...field}
+                          ref={(e) => {
+                            field.ref(e);
+                            memberInputRef.current = e;
+                          }}
                           autoComplete="off"
                           onFocus={() => setMemberInputFocused(true)}
                           onBlur={() => setMemberInputFocused(false)}
@@ -370,7 +379,10 @@ export const TransactionForm = ({
                           <div
                             key={idx}
                             className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
-                            onClick={() => handleSuggestionClick(m.value || m.id)}
+                            onClick={() => {
+                              handleSuggestionClick(m.value || m.id);
+                              setTimeout(() => bookInputRef.current?.focus(), 10);
+                            }}
                           >
                             <div className="font-medium">{m.value}</div>
                             <div className="text-sm text-muted-foreground">{m.description}</div>
@@ -401,6 +413,10 @@ export const TransactionForm = ({
                       <div className="relative">
                         <Input
                           {...field}
+                          ref={(e) => {
+                            field.ref(e);
+                            bookInputRef.current = e;
+                          }}
                           disabled={hasDueCharges}
                           onFocus={() => setBookInputFocused(true)}
                           onBlur={() => setBookInputFocused(false)}
