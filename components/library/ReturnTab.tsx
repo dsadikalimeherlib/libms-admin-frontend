@@ -21,6 +21,8 @@ export const ReturnTab = ({
   setOtpVerified,
   setQueuedAssets,
   hasDueCharges,
+  returnDate,
+  setReturnDate,
 }: {
   queuedAssets: any[]; // AssetByBarcodeMessage[]
   loading?: boolean;
@@ -33,12 +35,13 @@ export const ReturnTab = ({
   setOtpVerified?: (verified: boolean) => void;
   setQueuedAssets: (assets: any[]) => void;
   hasDueCharges?: boolean;
+  returnDate: string;
+  setReturnDate: (date: string) => void;
 }) => {
   const md = queuedAssets.length > 0 ? queuedAssets[queuedAssets.length - 1]?.member_details : null;
   const submitDisabled = queuedAssets.length === 0 || !md || returnMutation.isPending || hasDueCharges;
   const [totalDueCharges, setTotalDueCharges] = useState(0);
   const [createInvoice, setCreateInvoice] = useState(1);
-  const [returnDate, setReturnDate] = useState<string>(new Date().toISOString().split("T")[0]);
 
   const [verifying, setVerifying] = useState(false);
   const [otpDialogOpen, setOtpDialogOpen] = useState(false);

@@ -270,6 +270,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
   const [hasDueCharges, setHasDueCharges] = useState(false);
   const [reservedAssets, setReservedAssets] = useState<SelectBookResult[]>([]);
   const [reservationDate, setReservationDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [returnDate, setReturnDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [reservationRemarks, setReservationRemarks] = useState<string>("");
   const [maxIssueDays, setMaxIssueDays] = useState<number>(30);
   const [issuedCount, setIssuedCount] = useState<number>(0);
@@ -350,6 +351,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       setTabAssetData(null);
       setQueuedAssets([]);
       setScannedBook(null);
+      setReturnDate(format(new Date(), 'yyyy-MM-dd'));
       toast.success("Book(s) returned successfully.");
       queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
     },
@@ -451,6 +453,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
     setReservedAssets([]);
     setReservationDate(format(new Date(), 'yyyy-MM-dd'));
     setReservationRemarks("");
+    setReturnDate(format(new Date(), 'yyyy-MM-dd'));
     if (setDueMessage) setDueMessage(null);
     form.reset();
   };
@@ -538,11 +541,12 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
     }
   };
 
-  const getAssetDetailFun = async (name: string) => {
+  const getAssetDetailFun = async (name: string, targetTab?: "issue" | "return" | "renew" | "reservation") => {
+    const currentTab = targetTab || activeTab;
     try {
-      const isAlreadyQueued = activeTab === "issue"
+      const isAlreadyQueued = currentTab === "issue"
         ? queuedBooks.some(book => book.barcode === name)
-        : activeTab === "return"
+        : currentTab === "return"
           ? queuedAssets.some(asset => asset.asset_id === name)
           : false;
 
@@ -553,14 +557,14 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         return;
       }
       setTabAssetLoading(true);
-      const transactionType = activeTab === "issue" ? "Issue" : activeTab === "return" ? "Return" : "Renew";
+      const transactionType = currentTab === "issue" ? "Issue" : currentTab === "return" ? "Return" : "Renew";
       const data = await getAssetByBarcode({
         barcode: name,
         member: member?.name || "",
         transactionType,
       });
 
-      if (activeTab === "return" && member?.name && data.member_details?.member && member.name !== data.member_details.member) {
+      if (currentTab === "return" && member?.name && data.member_details?.member && member.name !== data.member_details.member) {
         toast.error("This book does not belong to the same member.");
         form.setValue("barcode", "", { shouldValidate: false });
         form.clearErrors("barcode");
@@ -568,7 +572,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       }
 
       const memberQueryValue = form.getValues("memberQuery");
-      if (activeTab === "return" && !memberQueryValue && data.member_details?.member) {
+      if (currentTab === "return" && !memberQueryValue && data.member_details?.member) {
         const memberId = data.member_details.member;
         form.setValue("memberQuery", memberId, { shouldValidate: false });
         const validatedMember = await validateMembers({ text: memberId });
@@ -577,7 +581,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       }
 
       let localDaysLimit = maxIssueDays;
-      if (activeTab === "issue" || activeTab === "renew") {
+      if (currentTab === "issue" || currentTab === "renew") {
         const allowedData = await validateMemberToIssueBook({
           member: member?.name || "",
         })
@@ -594,7 +598,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
           return;
         }
       }
-      if (activeTab === "issue") {
+      if (currentTab === "issue") {
         const tDate = new Date();
         data.transactionDate = format(tDate, 'yyyy-MM-dd');
 
@@ -626,9 +630,9 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       form.setValue("barcode", "", { shouldValidate: false });
       form.clearErrors("barcode");
 
-      if (activeTab === "issue") {
+      if (currentTab === "issue") {
         setQueuedBooks((current) => [...current, buildIssuePreview(mappedBook, member, maxIssueDays)]);
-      } else if (activeTab === "return") {
+      } else if (currentTab === "return") {
         setQueuedAssets((current) => [...current, data]);
       }
     } catch (error: any) {
@@ -638,6 +642,11 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
     } finally {
       setTabAssetLoading(false);
     }
+  };
+
+  const handleIssueAvailableBook = async (barcode: string) => {
+    setActiveTab("issue");
+    await getAssetDetailFun(barcode, "issue");
   };
 
   return (
@@ -701,6 +710,8 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
           setOtpVerified={setOtpVerified}
           setQueuedAssets={setQueuedAssets}
           hasDueCharges={hasDueCharges}
+          returnDate={returnDate}
+          setReturnDate={setReturnDate}
         />
       </div>
       <div className={cn(activeTab !== "renew" && "hidden", "mt-1")}>
@@ -716,6 +727,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
           onSubmit={onSubmitReservation}
           loading={reservationMutation.isPending}
           submitDisabled={!member || reservedAssets.length === 0}
+          onIssueAvailableBook={handleIssueAvailableBook}
         />
       </div>
     </div>

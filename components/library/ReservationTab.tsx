@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pencil, Settings, Loader2 } from "lucide-react";
 import type { SelectBookResult } from "@/services/books";
+import { toast } from "react-toastify";
 
 export const ReservationTab = ({
   reservedAssets = [],
@@ -12,7 +13,8 @@ export const ReservationTab = ({
   setReservationRemarks,
   onSubmit,
   loading,
-  submitDisabled
+  submitDisabled,
+  onIssueAvailableBook
 }: {
   reservedAssets?: SelectBookResult[];
   reservationDate?: string;
@@ -22,6 +24,7 @@ export const ReservationTab = ({
   onSubmit?: () => void;
   loading?: boolean;
   submitDisabled?: boolean;
+  onIssueAvailableBook?: (barcode: string) => void;
 }) => {
   return (
     <div className="space-y-8 p-1 pt-4">
@@ -81,7 +84,6 @@ export const ReservationTab = ({
                   </TableRow>
                 ) : (
                   reservedAssets.map((asset, idx) => {
-                    console.log('asset1111', asset);
                     if (asset.status.toLowerCase() == 'available') {
                       return (
                         <TableRow key={idx}>
@@ -89,7 +91,15 @@ export const ReservationTab = ({
                           <TableCell className="font-medium text-foreground">{asset.name}</TableCell>
                           <TableCell className="text-foreground">{asset.asset_name}</TableCell>
                           <TableCell className="text-foreground">{asset.status}</TableCell>
-                          <TableCell><Pencil className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-foreground" /></TableCell>
+                          <TableCell>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => onIssueAvailableBook?.(asset.name)}
+                            >
+                              Issue
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       )
                     } else {
@@ -110,7 +120,14 @@ export const ReservationTab = ({
 
       <div className="flex justify-end items-center w-full">
         <button
-          onClick={onSubmit}
+          onClick={() => {
+            const hasAvailable = reservedAssets.some(asset => asset.status.toLowerCase() === 'available');
+            if (hasAvailable) {
+              toast.error("Book is available, cannot reserve.");
+              return;
+            }
+            onSubmit?.();
+          }}
           disabled={loading || submitDisabled}
           className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md flex items-center justify-center disabled:opacity-50"
         >
