@@ -301,7 +301,11 @@ export const TransactionForm = ({
               form.setValue("memberQuery", "", { shouldValidate: false });
               form.setValue("barcode", "", { shouldValidate: false });
               setTimeout(() => {
-                memberInputRef.current?.focus();
+                if (tab === "renew") {
+                  bookInputRef.current?.focus();
+                } else {
+                  memberInputRef.current?.focus();
+                }
               }, 10);
             }}
           >
@@ -445,6 +449,11 @@ export const TransactionForm = ({
                             if (event.key === "Enter") {
                               event.preventDefault();
                               getAssetDetailFun(field.value);
+                              if (activeTab === "renew") {
+                                setTimeout(() => {
+                                  memberInputRef.current?.focus();
+                                }, 10);
+                              }
                             }
                           }}
                         />

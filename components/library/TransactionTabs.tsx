@@ -577,18 +577,21 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       }
 
       const memberQueryValue = form.getValues("memberQuery");
-      if (currentTab === "return" && !memberQueryValue && data.member_details?.member) {
+      let currentMemberName = member?.name;
+      
+      if ((currentTab === "return" || currentTab === "renew") && !memberQueryValue && data.member_details?.member) {
         const memberId = data.member_details.member;
         form.setValue("memberQuery", memberId, { shouldValidate: false });
         const validatedMember = await validateMembers({ text: memberId });
         // await validateMemberToIssueBook({ member: memberId });
         setMember(validatedMember);
+        currentMemberName = validatedMember?.name;
       }
 
       let localDaysLimit = maxIssueDays;
       if (currentTab === "issue" || currentTab === "renew") {
         const allowedData = await validateMemberToIssueBook({
-          member: member?.name || "",
+          member: currentMemberName || "",
         })
         const daysLimit = allowedData.message && allowedData.message.length > 1 ? Number(allowedData.message[1]) : 30;
         setMaxIssueDays(daysLimit);
