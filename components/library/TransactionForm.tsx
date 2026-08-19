@@ -301,7 +301,7 @@ export const TransactionForm = ({
               form.setValue("memberQuery", "", { shouldValidate: false });
               form.setValue("barcode", "", { shouldValidate: false });
               setTimeout(() => {
-                if (tab === "renew") {
+                if (tab === "renew" || tab == 'return') {
                   bookInputRef.current?.focus();
                 } else {
                   memberInputRef.current?.focus();

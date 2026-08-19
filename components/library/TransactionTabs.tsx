@@ -128,7 +128,9 @@ export const SubmitBar = ({
   disableVerifyOTP?: boolean;
 }) => (
   <div className="">
-    <RootError message={error} />
+    <div className="mb-[30px]">
+      <RootError message={error?.includes("Failed to submit issue transaction") ? "Please contact Library Admin." : error} />
+    </div>
     <div className="flex justify-end gap-3 md:ml-auto">
       {onGenerateOTP && (
         <Button onClick={onGenerateOTP} disabled={disableGenerateOTP || verifying}>
@@ -578,7 +580,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
 
       const memberQueryValue = form.getValues("memberQuery");
       let currentMemberName = member?.name;
-      
+
       if ((currentTab === "return" || currentTab === "renew") && !memberQueryValue && data.member_details?.member) {
         const memberId = data.member_details.member;
         form.setValue("memberQuery", memberId, { shouldValidate: false });
