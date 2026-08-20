@@ -60,9 +60,9 @@ export const ReservationTab = ({
           </div>
         </div>
 
-        {/* Book Reservation Details */}
+        {/* Books Available for Issue: */}
         <div className="space-y-4">
-          <h3 className="font-bold text-base">Book Reservation Details</h3>
+          <h3 className="font-bold text-base">Books Available for Issue:</h3>
 
           <div className="border border-muted rounded-md overflow-hidden">
             <Table>
@@ -92,9 +92,9 @@ export const ReservationTab = ({
                           <TableCell className="text-foreground">{asset.asset_name}</TableCell>
                           <TableCell className="text-foreground">{asset.status}</TableCell>
                           <TableCell>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={() => onIssueAvailableBook?.(asset.name)}
                             >
                               Issue
