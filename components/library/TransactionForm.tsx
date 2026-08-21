@@ -270,12 +270,30 @@ export const TransactionForm = ({
       }
     } else {
       getAssetDetailFun(selectionValue);
+      if (activeTab === "renew") {
+        setTimeout(() => {
+          memberInputRef.current?.focus();
+        }, 10);
+      } else if (activeTab === "return") {
+        setTimeout(() => {
+          document.getElementById("returnDateInput")?.focus();
+        }, 10);
+      }
     }
   };
 
   const handleScanSuccess = (barcode: string) => {
     form.setValue("barcode", barcode, { shouldValidate: true });
     getAssetDetailFun(barcode);
+    if (activeTab === "renew") {
+      setTimeout(() => {
+        memberInputRef.current?.focus();
+      }, 10);
+    } else if (activeTab === "return") {
+      setTimeout(() => {
+        document.getElementById("returnDateInput")?.focus();
+      }, 10);
+    }
   };
 
   return (
@@ -452,6 +470,10 @@ export const TransactionForm = ({
                               if (activeTab === "renew") {
                                 setTimeout(() => {
                                   memberInputRef.current?.focus();
+                                }, 10);
+                              } else if (activeTab === "return") {
+                                setTimeout(() => {
+                                  document.getElementById("returnDateInput")?.focus();
                                 }, 10);
                               }
                             }

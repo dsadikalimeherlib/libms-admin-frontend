@@ -31,8 +31,28 @@ export const submitFrappeDocument = async (doc: any, action: string, access_toke
 
     const data = await res.json();
 
-    if (!res.ok) {
-        throw new Error(data.error || errorMessage);
+    let finalErrorMessage = data.error?.message || data.error || errorMessage;
+    if (data._server_messages) {
+        try {
+            const messages = typeof data._server_messages === 'string' ? JSON.parse(data._server_messages) : data._server_messages;
+            if (Array.isArray(messages)) {
+                for (let i = messages.length - 1; i >= 0; i--) {
+                    try {
+                        const msgObj = typeof messages[i] === 'string' ? JSON.parse(messages[i]) : messages[i];
+                        if (msgObj && msgObj.message) {
+                            finalErrorMessage = `Please contact Library Admin: ${msgObj.message}`;
+                            if (msgObj.raise_exception) {
+                                break;
+                            }
+                        }
+                    } catch (e) { }
+                }
+            }
+        } catch (e) { }
+    }
+
+    if (!res.ok || data.exc) {
+        throw new Error(finalErrorMessage);
     }
 
     return data;
@@ -694,7 +714,7 @@ export const submitBookReservation = async ({
         const parsed = JSON.parse(token);
         access_token = parsed.access_token;
         if (parsed.user_id) owner = parsed.user_id;
-    } catch(e) {}
+    } catch (e) { }
 
     const docName = `new-book-reservation-${Math.random().toString(36).substring(2, 12)}`;
 

@@ -87,8 +87,7 @@ export type AssetDoc = {
 
 export type TabAssetData = AssetByBarcodeMessage;
 
-const RootError = ({ message }: { message?: string }) =>
-  message ? <div className="inline-feedback">{message}</div> : null;
+// Removed RootError component
 
 export const EmptyStateRow = ({ message, colSpan }: { message: string; colSpan: number }) => (
   <TableRow>
@@ -128,9 +127,6 @@ export const SubmitBar = ({
   disableVerifyOTP?: boolean;
 }) => (
   <div className="">
-    <div className="mb-[30px]">
-      <RootError message={error?.includes("Failed to submit issue transaction") ? "Please contact Library Admin." : error} />
-    </div>
     <div className="flex justify-end gap-3 md:ml-auto">
       {onGenerateOTP && (
         <Button onClick={onGenerateOTP} disabled={disableGenerateOTP || verifying}>
@@ -317,6 +313,8 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
   useEffect(() => {
     setSavedDocName("");
     setOtpVerified(false);
+    setQueuedAssets([]);
+    setReturnDate(format(new Date(), 'yyyy-MM-dd'));
   }, [activeTab]);
 
   useEffect(() => {
@@ -344,7 +342,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
     },
     onError: (error: Error) => {
-      form.setError("root", { message: error.message });
+      toast.error(error.message?.includes("Failed to submit issue transaction") ? "Please contact Library Admin." : error.message);
     },
   });
 
@@ -430,12 +428,12 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
 
   const onSubmit = () => {
     if (!member) {
-      form.setError("root", { message: "Member is required before issuing books." });
+      toast.error("Member is required before issuing books.");
       return;
     }
 
     if (queuedBooks.length === 0) {
-      form.setError("root", { message: "Add at least one book before submitting." });
+      toast.error("Add at least one book before submitting.");
       return;
     }
 

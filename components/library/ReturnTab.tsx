@@ -160,25 +160,28 @@ export const ReturnTab = ({
           <p className="mt-1 text-sm text-muted-foreground">Review queued books before returning.</p>
         </div>
 
-        <div className="section-frame flex gap-3 ">
-          <div>
-            <p className="section-heading">Issue Date</p>
-            {md?.transaction_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(md.transaction_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+        {queuedAssets.length > 0 && (
+          <div className="section-frame flex gap-3 ">
+            <div>
+              <p className="section-heading">Issue Date</p>
+              {md?.transaction_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(md.transaction_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+            </div>
+            <div>
+              <p className="section-heading">Return Date</p>
+              <Input
+                id="returnDateInput"
+                type="date"
+                className="mt-1 w-auto"
+                value={returnDate}
+                onChange={(e) => setReturnDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <p className="section-heading">Due Date</p>
+              {md?.due_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(md.due_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+            </div>
           </div>
-          <div>
-            <p className="section-heading">Return Date</p>
-            <Input
-              type="date"
-              className="mt-1 w-auto"
-              value={returnDate}
-              onChange={(e) => setReturnDate(e.target.value)}
-            />
-          </div>
-          <div>
-            <p className="section-heading">Due Date</p>
-            {md?.due_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(md.due_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
-          </div>
-        </div>
+        )}
 
         <div className="table-shell">
           <Table>

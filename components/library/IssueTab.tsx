@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, CalendarIcon } from "lucide-react";
 import { format, addMonths, addDays } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,6 +9,9 @@ import { IssueFormValues, TabAssetData, SubmitBar, OtpVerificationDialog } from 
 import { Button } from "@/components/ui/button";
 import { submitBookTransaction, generateOTP, getBookTransaction } from "@/services/books";
 import { toast } from "react-toastify";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 export interface IssueTabProps {
   form: UseFormReturn<IssueFormValues>;
@@ -138,6 +141,7 @@ export const IssueTab = ({
   const error = form.formState.errors.root?.message
   const disabled = submitDisabled
 
+
   const handleMemeberVerification = async () => {
     if (!member) {
       toast.error("Please select a member before verifying.");
@@ -241,15 +245,53 @@ export const IssueTab = ({
         <div className="section-frame flex gap-3 ">
           <div>
             <p className="section-heading">Issue Date</p>
-            <Input
-              type="date"
-              className="mt-1 w-auto"
-              value={assetData?.transactionDate || (queuedBooks[0]?.transactionDate) || ""}
-              onChange={handleDateChange}
-              max={member?.due_date ? format(new Date(member.due_date), 'yyyy-MM-dd') : undefined}
-              min={format(new Date(), 'yyyy-MM-dd')}
-              disabled={!member || queuedBooks.length === 0}
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "mt-1 w-auto justify-start text-left font-normal",
+                    !(assetData?.transactionDate || queuedBooks[0]?.transactionDate) && "text-muted-foreground"
+                  )}
+                  disabled={!member || queuedBooks.length === 0}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {(assetData?.transactionDate || queuedBooks[0]?.transactionDate) ? (
+                    format(new Date(assetData?.transactionDate || queuedBooks[0]?.transactionDate as string), "dd/MM/yyyy")
+                  ) : (
+                    <span>Pick a date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={(assetData?.transactionDate || queuedBooks[0]?.transactionDate) ? new Date(assetData?.transactionDate || queuedBooks[0]?.transactionDate as string) : undefined}
+                  onSelect={(date) => {
+                    if (!date) return;
+                    const newDateStr = format(date, 'yyyy-MM-dd');
+                    const fakeEvent = {
+                      target: { value: newDateStr }
+                    } as React.ChangeEvent<HTMLInputElement>;
+                    handleDateChange(fakeEvent);
+                  }}
+                  initialFocus
+                  disabled={(date) => {
+                    const minDate = new Date();
+                    minDate.setHours(0, 0, 0, 0);
+                    const d = new Date(date);
+                    d.setHours(0, 0, 0, 0);
+                    if (d < minDate) return true;
+                    if (member?.due_date) {
+                      const maxDate = new Date(member.due_date);
+                      maxDate.setHours(0, 0, 0, 0);
+                      if (d > maxDate) return true;
+                    }
+                    return false;
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
           <div>
             <p className="section-heading">Due Date</p>
