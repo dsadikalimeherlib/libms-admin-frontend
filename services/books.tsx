@@ -229,7 +229,7 @@ export const submitBookTransaction = async ({
                         transaction_date: md?.transaction_date || today,
                         due_date: md?.due_date || today,
                         return_date: today,
-                        due_charges: 0,
+                        due_charges: asset.total_due_charges || 0,
                         transaction_no: md?.name || "",
                         parent: docName,
                         parentfield: "return_book_details",
@@ -319,7 +319,7 @@ export const submitBookRenew = async ({
                 previous_due_date: md.due_date,
                 return_date: today,
                 renew_due_date: renewDueDate,
-                due_charges: 0,
+                due_charges: assetData.total_due_charges || totalDueCharges || 0,
                 transaction_no: md.name,
                 parent: tempName,
                 parentfield: "renew_book_details",
@@ -357,10 +357,12 @@ export const getAssetByBarcode = async ({
     barcode,
     member,
     transactionType,
+    total_due_charges = 0,
 }: {
     barcode: string;
     member: string;
     transactionType: "Issue" | "Return" | "Renew";
+    total_due_charges?: number;
 }): Promise<AssetByBarcodeMessage> => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error("No token found");
@@ -383,7 +385,7 @@ export const getAssetByBarcode = async ({
         member,
         scan_barcode: barcode,
         idx: 0,
-        total_due_charges: 0,
+        total_due_charges: total_due_charges,
     };
 
     const body = new URLSearchParams({

@@ -563,7 +563,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       }
       setTabAssetLoading(true);
       const transactionType = currentTab === "issue" ? "Issue" : currentTab === "return" ? "Return" : "Renew";
-      const data = await getAssetByBarcode({
+      let data = await getAssetByBarcode({
         barcode: name,
         member: member?.name || "",
         transactionType,
@@ -589,7 +589,8 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       }
 
       let localDaysLimit = maxIssueDays;
-      if (currentTab === "issue" || currentTab === "renew") {
+      let calculatedDueCharges = 0;
+      if (currentTab === "issue" || currentTab === "renew" || currentTab === "return") {
         const allowedData = await validateMemberToIssueBook({
           member: currentMemberName || "",
         })
@@ -605,7 +606,33 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
           form.clearErrors();
           return;
         }
+
+        if (currentTab === "return" || currentTab === "renew") {
+          const perDayCharge = allowedData.message && allowedData.message.length > 2 ? Number(allowedData.message[2]) : 0;
+          if (data.member_details?.due_date) {
+            const dueDate = new Date(data.member_details.due_date);
+            const retDate = new Date(returnDate);
+            dueDate.setHours(0, 0, 0, 0);
+            retDate.setHours(0, 0, 0, 0);
+            if (retDate > dueDate) {
+              const diffTime = retDate.getTime() - dueDate.getTime();
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              calculatedDueCharges = diffDays * perDayCharge;
+            }
+          }
+        }
       }
+      
+      if (calculatedDueCharges > 0) {
+        data = await getAssetByBarcode({
+          barcode: name,
+          member: currentMemberName || "",
+          transactionType,
+          total_due_charges: calculatedDueCharges,
+        });
+      }
+      data.total_due_charges = calculatedDueCharges;
+
       if (currentTab === "issue") {
         const tDate = new Date();
         data.transactionDate = format(tDate, 'yyyy-MM-dd');
