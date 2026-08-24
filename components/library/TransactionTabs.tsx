@@ -353,6 +353,12 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       setQueuedAssets([]);
       setScannedBook(null);
       setReturnDate(format(new Date(), 'yyyy-MM-dd'));
+      setMember(null);
+      setSavedDocName("");
+      setOtpVerified(false);
+      form.setValue("memberQuery", "", { shouldValidate: false });
+      form.setValue("barcode", "", { shouldValidate: false });
+      form.clearErrors();
       toast.success("Book(s) returned successfully.");
       queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
     },
@@ -366,6 +372,12 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
     onSuccess: () => {
       setTabAssetData(null);
       setScannedBook(null);
+      setMember(null);
+      setSavedDocName("");
+      setOtpVerified(false);
+      form.setValue("memberQuery", "", { shouldValidate: false });
+      form.setValue("barcode", "", { shouldValidate: false });
+      form.clearErrors();
       toast.success("Book renewed successfully.");
       queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
     },

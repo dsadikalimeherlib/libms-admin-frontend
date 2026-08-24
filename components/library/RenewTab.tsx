@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -23,10 +28,13 @@ export const RenewTab = ({
   const submitDisabled = !assetData || !md || renewMutation.isPending || hasDueCharges;
   const [totalDueCharges, setTotalDueCharges] = useState(0);
   const [createInvoice, setCreateInvoice] = useState(1);
-  const [returnDate, setReturnDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [returnDate, setReturnDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
 
   useEffect(() => {
     setTotalDueCharges(assetData?.total_due_charges || 0);
+    if (!assetData) {
+      setReturnDate(format(new Date(), "yyyy-MM-dd"));
+    }
   }, [assetData]);
 
   return (
@@ -39,12 +47,40 @@ export const RenewTab = ({
           </div>
           <div>
             <p className="section-heading">Return Date</p>
-            <Input
-              type="date"
-              className="mt-1 w-auto"
-              value={returnDate}
-              onChange={(e) => setReturnDate(e.target.value)}
-            />
+            {assetData ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="renewDateInput"
+                    variant={"outline"}
+                    className={cn(
+                      "mt-1 w-auto justify-start text-left font-normal",
+                      !returnDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {returnDate ? (
+                      format(new Date(returnDate), "dd/MM/yyyy")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={returnDate ? new Date(returnDate) : undefined}
+                    onSelect={(date) => {
+                      if (!date) return;
+                      setReturnDate(format(date, "yyyy-MM-dd"));
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <p className="mt-1 text-sm text-foreground">--</p>
+            )}
           </div>
           <div>
             <p className="section-heading">Due Date</p>

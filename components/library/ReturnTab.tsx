@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -168,13 +172,36 @@ export const ReturnTab = ({
             </div>
             <div>
               <p className="section-heading">Return Date</p>
-              <Input
-                id="returnDateInput"
-                type="date"
-                className="mt-1 w-auto"
-                value={returnDate}
-                onChange={(e) => setReturnDate(e.target.value)}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="returnDateInput"
+                    variant={"outline"}
+                    className={cn(
+                      "mt-1 w-auto justify-start text-left font-normal",
+                      !returnDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {returnDate ? (
+                      format(new Date(returnDate), "dd/MM/yyyy")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={returnDate ? new Date(returnDate) : undefined}
+                    onSelect={(date) => {
+                      if (!date) return;
+                      setReturnDate(format(date, "yyyy-MM-dd"));
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <p className="section-heading">Due Date</p>
