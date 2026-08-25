@@ -573,7 +573,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         toast.error("This book is already queued.");
         form.setValue("barcode", "", { shouldValidate: false });
         form.clearErrors("barcode");
-        return;
+        return false;
       }
       setTabAssetLoading(true);
       const transactionType = currentTab === "issue" ? "Issue" : currentTab === "return" ? "Return" : "Renew";
@@ -587,7 +587,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         toast.error("This book does not belong to the same member.");
         form.setValue("barcode", "", { shouldValidate: false });
         form.clearErrors("barcode");
-        return;
+        return false;
       }
 
       const memberQueryValue = form.getValues("memberQuery");
@@ -618,7 +618,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
           form.setValue("memberQuery", "", { shouldValidate: false });
           form.setValue("barcode", "", { shouldValidate: false });
           form.clearErrors();
-          return;
+          return false;
         }
 
         if (currentTab === "return" || currentTab === "renew") {
@@ -684,10 +684,12 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       } else if (currentTab === "return") {
         setQueuedAssets((current) => [...current, data]);
       }
+      return true;
     } catch (error: any) {
       toast.error(error.message);
       form.setValue("barcode", "", { shouldValidate: false });
       form.clearErrors();
+      return false;
     } finally {
       setTabAssetLoading(false);
     }

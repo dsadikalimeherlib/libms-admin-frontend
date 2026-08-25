@@ -153,7 +153,7 @@ export interface TransactionFormProps {
   memberSuggestions: MemberSuggestion[];
   handleSuggestionClick: (v: string) => void;
 
-  getAssetDetailFun: (v: string) => void;
+  getAssetDetailFun: (v: string) => Promise<boolean> | void;
   scannedBook: Book | null;
   activeTab: string;
   setActiveTab: (v: any) => void;
@@ -269,30 +269,42 @@ export const TransactionForm = ({
         toast.error(error.message || "Failed to fetch reservation books");
       }
     } else {
-      getAssetDetailFun(selectionValue);
-      if (activeTab === "renew") {
-        setTimeout(() => {
-          memberInputRef.current?.focus();
-        }, 10);
-      } else if (activeTab === "return") {
-        setTimeout(() => {
-          document.getElementById("returnDateInput")?.focus();
-        }, 10);
+      const res = getAssetDetailFun(selectionValue);
+      if (res instanceof Promise) {
+        res.then((success) => {
+          if (success !== false) {
+            if (activeTab === "renew" || activeTab === "return") {
+              setTimeout(() => {
+                memberInputRef.current?.focus();
+              }, 10);
+            }
+          } else {
+            setTimeout(() => {
+              bookInputRef.current?.focus();
+            }, 10);
+          }
+        });
       }
     }
   };
 
   const handleScanSuccess = (barcode: string) => {
     form.setValue("barcode", barcode, { shouldValidate: true });
-    getAssetDetailFun(barcode);
-    if (activeTab === "renew") {
-      setTimeout(() => {
-        memberInputRef.current?.focus();
-      }, 10);
-    } else if (activeTab === "return") {
-      setTimeout(() => {
-        document.getElementById("returnDateInput")?.focus();
-      }, 10);
+    const res = getAssetDetailFun(barcode);
+    if (res instanceof Promise) {
+      res.then((success) => {
+        if (success !== false) {
+          if (activeTab === "renew" || activeTab === "return") {
+            setTimeout(() => {
+              memberInputRef.current?.focus();
+            }, 10);
+          }
+        } else {
+          setTimeout(() => {
+            bookInputRef.current?.focus();
+          }, 10);
+        }
+      });
     }
   };
 
@@ -466,15 +478,21 @@ export const TransactionForm = ({
                             }
                             if (event.key === "Enter") {
                               event.preventDefault();
-                              getAssetDetailFun(field.value);
-                              if (activeTab === "renew") {
-                                setTimeout(() => {
-                                  memberInputRef.current?.focus();
-                                }, 10);
-                              } else if (activeTab === "return") {
-                                setTimeout(() => {
-                                  document.getElementById("returnDateInput")?.focus();
-                                }, 10);
+                              const res = getAssetDetailFun(field.value);
+                              if (res instanceof Promise) {
+                                res.then((success) => {
+                                  if (success !== false) {
+                                    if (activeTab === "renew" || activeTab === "return") {
+                                      setTimeout(() => {
+                                        memberInputRef.current?.focus();
+                                      }, 10);
+                                    }
+                                  } else {
+                                    setTimeout(() => {
+                                      bookInputRef.current?.focus();
+                                    }, 10);
+                                  }
+                                });
                               }
                             }
                           }}
