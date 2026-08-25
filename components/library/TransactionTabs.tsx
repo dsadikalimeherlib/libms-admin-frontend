@@ -565,7 +565,9 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         ? queuedBooks.some(book => book.barcode === name)
         : currentTab === "return"
           ? queuedAssets.some(asset => asset.asset_id === name)
-          : false;
+          : currentTab === "renew"
+            ? tabAssetData?.asset_id === name
+            : false;
 
       if (isAlreadyQueued) {
         toast.error("This book is already queued.");
@@ -634,7 +636,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
           }
         }
       }
-      
+
       if (calculatedDueCharges > 0) {
         data = await getAssetByBarcode({
           barcode: name,
@@ -763,7 +765,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         />
       </div>
       <div className={cn(activeTab !== "renew" && "hidden", "mt-1")}>
-        <RenewTab assetData={tabAssetData} loading={tabAssetLoading} renewMutation={renewMutation} onSubmitRenew={onSubmitRenew} hasDueCharges={hasDueCharges} />
+        <RenewTab assetData={tabAssetData} setTabAssetData={setTabAssetData} loading={tabAssetLoading} renewMutation={renewMutation} onSubmitRenew={onSubmitRenew} hasDueCharges={hasDueCharges} />
       </div>
       <div className={cn(activeTab !== "reservation" && "hidden", "mt-1")}>
         <ReservationTab

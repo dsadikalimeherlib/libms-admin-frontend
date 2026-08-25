@@ -13,12 +13,14 @@ import { TabAssetData, EmptyStateRow, SubmitBar } from "./TransactionTabs";
 
 export const RenewTab = ({
   assetData,
+  setTabAssetData,
   loading,
   renewMutation,
   onSubmitRenew,
   hasDueCharges,
 }: {
   assetData?: TabAssetData | null;
+  setTabAssetData: (data: TabAssetData | null) => void;
   loading?: boolean;
   renewMutation: any;
   onSubmitRenew: (totalDueCharges: number, createInvoice: number) => void;
@@ -103,12 +105,13 @@ export const RenewTab = ({
                 <TableHead>Return Date</TableHead>
                 <TableHead>Due Date</TableHead>
                 <TableHead>Due Charges</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
                     <Loader2 className="mx-auto animate-spin" />
                   </TableCell>
                 </TableRow>
@@ -122,9 +125,18 @@ export const RenewTab = ({
                   <TableCell>{formatDisplayDate(returnDate)}</TableCell>
                   <TableCell>{md?.due_date ? formatDisplayDate(md.due_date) : "—"}</TableCell>
                   <TableCell>{assetData.total_due_charges ?? 0}</TableCell>
+                  <TableCell>
+                    <button
+                      type="button"
+                      className="text-sm font-medium text-destructive hover:underline"
+                      onClick={() => setTabAssetData(null)}
+                    >
+                      Remove
+                    </button>
+                  </TableCell>
                 </TableRow>
               ) : (
-                <EmptyStateRow message="Scan a barcode above and click Renew tab to load transaction." colSpan={8} />
+                <EmptyStateRow message="Scan a barcode above and click Renew tab to load transaction." colSpan={9} />
               )}
             </TableBody>
           </Table>

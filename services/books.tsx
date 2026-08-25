@@ -421,7 +421,7 @@ export const getAssetByBarcode = async ({
         // Ideal case: message is already the full asset details object
 
         if (!data.message.asset_id) {
-            throw new Error("Book is not available");
+            throw new Error("Book is not issued");
         }
         message = data.message as AssetByBarcodeMessage;
     } else {
@@ -429,7 +429,7 @@ export const getAssetByBarcode = async ({
         const doc = data.docs?.[0];
         if (!doc) throw new Error("No asset details returned for this barcode");
         if (!data.message.asset_id) {
-            throw new Error("Book is not available");
+            throw new Error("Book is not issued");
         }
         message = {
             asset_id: doc.scan_barcode || barcode,
