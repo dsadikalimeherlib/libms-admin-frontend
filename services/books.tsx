@@ -760,3 +760,37 @@ export const submitBookReservation = async ({
     const data = await submitFrappeDocument(doc, "Save", access_token, "Failed to submit book reservation");
     return data.docs?.[0] || data.message || {};
 };
+
+
+export const get_requested_book_reservations = async ({
+    self_name,
+}: {
+    self_name: string;
+}) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token found');
+    const { access_token } = JSON.parse(token);
+
+    const body = new URLSearchParams({ self_name });
+
+    const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/library_management.library_management.doctype.book_transaction.book_transaction.get_requested_book_reservations`,
+        {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+                Accept: 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-Frappe-CMD': '',
+            },
+            body: body.toString(),
+        }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.message || data.error || 'Failed to fetch requested book reservations');
+
+    return data;
+};

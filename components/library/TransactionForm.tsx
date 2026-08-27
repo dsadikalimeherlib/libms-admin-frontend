@@ -7,7 +7,7 @@ import type { Member, Book } from "@/lib/mock-library-api";
 import { UseFormReturn } from "react-hook-form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { IssueFormValues, AssetDoc, MemberSuggestion, TabAssetData } from "./TransactionTabs";
-import { getMemberImage } from "@/services/members";
+import { getMemberImage, validateMemberTransaction } from "@/services/members";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { toast } from "react-toastify";
 import { searchFrappeLink, selectBook, type SearchLinkResult, type SelectBookResult } from "@/services/books";
@@ -271,9 +271,29 @@ export const TransactionForm = ({
     } else {
       const res = getAssetDetailFun(selectionValue);
       if (res instanceof Promise) {
-        res.then((success) => {
+        res.then(async (success) => {
           if (success !== false) {
-            if (activeTab === "renew" || activeTab === "return") {
+            if (activeTab === "renew") {
+              const currentMemberId = form.getValues("memberQuery");
+              if (currentMemberId) {
+                try {
+                  const validatedTransaction = await validateMemberTransaction({ text: currentMemberId });
+                  if (!validatedTransaction.valid) {
+                    toast.error(validatedTransaction.message);
+                    setMember(null);
+                    setTabAssetData(null);
+                  } else {
+                    toast.success(validatedTransaction.message);
+                    setMember((prev) => prev ? { ...prev, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
+                  }
+                } catch (error: any) {
+                  toast.error(error.message || "Failed to validate member");
+                }
+              }
+              setTimeout(() => {
+                memberInputRef.current?.focus();
+              }, 10);
+            } else if (activeTab === "return") {
               setTimeout(() => {
                 memberInputRef.current?.focus();
               }, 10);
@@ -292,9 +312,29 @@ export const TransactionForm = ({
     form.setValue("barcode", barcode, { shouldValidate: true });
     const res = getAssetDetailFun(barcode);
     if (res instanceof Promise) {
-      res.then((success) => {
+      res.then(async (success) => {
         if (success !== false) {
-          if (activeTab === "renew" || activeTab === "return") {
+          if (activeTab === "renew") {
+            const currentMemberId = form.getValues("memberQuery");
+            if (currentMemberId) {
+              try {
+                const validatedTransaction = await validateMemberTransaction({ text: currentMemberId });
+                if (!validatedTransaction.valid) {
+                  toast.error(validatedTransaction.message);
+                  setMember(null);
+                  setTabAssetData(null);
+                } else {
+                  toast.success(validatedTransaction.message);
+                  setMember((prev) => prev ? { ...prev, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
+                }
+              } catch (error: any) {
+                toast.error(error.message || "Failed to validate member");
+              }
+            }
+            setTimeout(() => {
+              memberInputRef.current?.focus();
+            }, 10);
+          } else if (activeTab === "return") {
             setTimeout(() => {
               memberInputRef.current?.focus();
             }, 10);
@@ -480,9 +520,29 @@ export const TransactionForm = ({
                               event.preventDefault();
                               const res = getAssetDetailFun(field.value);
                               if (res instanceof Promise) {
-                                res.then((success) => {
+                                res.then(async (success) => {
                                   if (success !== false) {
-                                    if (activeTab === "renew" || activeTab === "return") {
+                                    if (activeTab === "renew") {
+                                      const currentMemberId = form.getValues("memberQuery");
+                                      if (currentMemberId) {
+                                        try {
+                                          const validatedTransaction = await validateMemberTransaction({ text: currentMemberId });
+                                          if (!validatedTransaction.valid) {
+                                            toast.error(validatedTransaction.message);
+                                            setMember(null);
+                                            setTabAssetData(null);
+                                          } else {
+                                            toast.success(validatedTransaction.message);
+                                            setMember((prev) => prev ? { ...prev, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
+                                          }
+                                        } catch (error: any) {
+                                          toast.error(error.message || "Failed to validate member");
+                                        }
+                                      }
+                                      setTimeout(() => {
+                                        memberInputRef.current?.focus();
+                                      }, 10);
+                                    } else if (activeTab === "return") {
                                       setTimeout(() => {
                                         memberInputRef.current?.focus();
                                       }, 10);

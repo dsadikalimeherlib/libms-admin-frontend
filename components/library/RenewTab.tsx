@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Loader2, CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { formatDisplayDate } from "@/lib/mock-library-api";
+import { formatDisplayDate, type Member } from "@/lib/mock-library-api";
 import { TabAssetData, EmptyStateRow, SubmitBar } from "./TransactionTabs";
 
 export const RenewTab = ({
@@ -18,6 +18,8 @@ export const RenewTab = ({
   renewMutation,
   onSubmitRenew,
   hasDueCharges,
+  maxIssueDays,
+  member,
 }: {
   assetData?: TabAssetData | null;
   setTabAssetData: (data: TabAssetData | null) => void;
@@ -25,6 +27,8 @@ export const RenewTab = ({
   renewMutation: any;
   onSubmitRenew: (totalDueCharges: number, createInvoice: number) => void;
   hasDueCharges?: boolean;
+  maxIssueDays?: number;
+  member?: Member | null;
 }) => {
   const md = assetData?.member_details;
   const submitDisabled = !assetData || !md || renewMutation.isPending || hasDueCharges;
@@ -38,6 +42,21 @@ export const RenewTab = ({
       setReturnDate(format(new Date(), "yyyy-MM-dd"));
     }
   }, [assetData]);
+
+  useEffect(() => {
+    if (assetData && setTabAssetData && returnDate) {
+      let newDueDateStr = format(addDays(new Date(returnDate), maxIssueDays || 30), 'yyyy-MM-dd');
+      if (member?.due_date) {
+        const memberDueDate = new Date(member.due_date);
+        if (new Date(newDueDateStr) > memberDueDate) {
+          newDueDateStr = format(memberDueDate, 'yyyy-MM-dd');
+        }
+      }
+      if (assetData.dueDate !== newDueDateStr) {
+        setTabAssetData({ ...assetData, dueDate: newDueDateStr });
+      }
+    }
+  }, [member?.name, maxIssueDays, returnDate, assetData?.asset_id]);
 
   return (
     <div className="space-y-6">
@@ -103,7 +122,7 @@ export const RenewTab = ({
                 <TableHead>Issue Date</TableHead>
                 <TableHead>Previous Due Date</TableHead>
                 <TableHead>Return Date</TableHead>
-                <TableHead>Due Date</TableHead>
+                <TableHead>Renew Due Date</TableHead>
                 <TableHead>Due Charges</TableHead>
                 <TableHead></TableHead>
               </TableRow>
@@ -123,7 +142,8 @@ export const RenewTab = ({
                   <TableCell>{formatDisplayDate(md.transaction_date)}</TableCell>
                   <TableCell>{formatDisplayDate(md.due_date)}</TableCell>
                   <TableCell>{formatDisplayDate(returnDate)}</TableCell>
-                  <TableCell>{md?.due_date ? formatDisplayDate(md.due_date) : "—"}</TableCell>
+
+                  <TableCell>{assetData.dueDate ? format(new Date(assetData.dueDate), 'dd/MM/yyyy') : "—"}</TableCell>
                   <TableCell>{assetData.total_due_charges ?? 0}</TableCell>
                   <TableCell>
                     <button

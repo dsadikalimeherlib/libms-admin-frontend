@@ -31,7 +31,7 @@ import {
   type Member,
 } from "@/lib/mock-library-api";
 import { getMemberCustomer, validateMembers, validateMemberTransaction, getMemberList } from "@/services/members";
-import { searchFrappeLink, submitBookTransaction, submitBookRenew, submitBookReservation, getAssetByBarcode, type AssetByBarcodeMessage, validateMemberToIssueBook, countBooksIssued, type SelectBookResult } from "@/services/books";
+import { searchFrappeLink, submitBookTransaction, submitBookRenew, submitBookReservation, getAssetByBarcode, type AssetByBarcodeMessage, validateMemberToIssueBook, countBooksIssued, type SelectBookResult, get_requested_book_reservations } from "@/services/books";
 import { toast } from "react-toastify";
 
 import { IssueTab } from "./IssueTab";
@@ -348,7 +348,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
 
   const returnMutation = useMutation({
     mutationFn: ({ totalDueCharges, createInvoice }: { totalDueCharges: number, createInvoice: number }) => submitBookTransaction({ transaction_type: "Return", member: member!, queuedAssets, totalDueCharges, createInvoice }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       setTabAssetData(null);
       setQueuedAssets([]);
       setScannedBook(null);
@@ -361,6 +361,19 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       form.clearErrors();
       toast.success("Book(s) returned successfully.");
       queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
+      
+      if (data && data.name) {
+        get_requested_book_reservations({ self_name: data.name })
+          .then((res) => {
+            if (res && res.message) {
+              // The API might return a message about reservation status
+              if (typeof res.message === 'string') {
+                 toast.info(res.message);
+              }
+            }
+          })
+          .catch((err) => console.error("Error checking reservations:", err));
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -767,7 +780,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         />
       </div>
       <div className={cn(activeTab !== "renew" && "hidden", "mt-1")}>
-        <RenewTab assetData={tabAssetData} setTabAssetData={setTabAssetData} loading={tabAssetLoading} renewMutation={renewMutation} onSubmitRenew={onSubmitRenew} hasDueCharges={hasDueCharges} />
+        <RenewTab assetData={tabAssetData} setTabAssetData={setTabAssetData} loading={tabAssetLoading} renewMutation={renewMutation} onSubmitRenew={onSubmitRenew} hasDueCharges={hasDueCharges} maxIssueDays={maxIssueDays} member={member} />
       </div>
       <div className={cn(activeTab !== "reservation" && "hidden", "mt-1")}>
         <ReservationTab
