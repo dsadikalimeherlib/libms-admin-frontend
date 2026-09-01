@@ -10,7 +10,7 @@ import { IssueFormValues, AssetDoc, MemberSuggestion, TabAssetData } from "./Tra
 import { getMemberImage, validateMemberTransaction } from "@/services/members";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { toast } from "react-toastify";
-import { searchFrappeLink, selectBook, type SearchLinkResult, type SelectBookResult } from "@/services/books";
+import { searchFrappeLink, selectBook, type SearchLinkResult, type SelectBookResult, getAssetList } from "@/services/books";
 export const MemberDetails = ({ member, issuedCount, maxIssueLimit }: { member: Member, issuedCount: number, maxIssueLimit: number }) => {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
@@ -206,14 +206,46 @@ export const TransactionForm = ({
   const bookInputRef = useRef<HTMLInputElement>(null);
 
   const loadBookSuggestions = async (query: string) => {
-    if (activeTab !== "reservation" || !query || query.length < 3) {
+    if (!query || query.length < 3) {
       setBookSuggestions([]);
       return;
     }
     setBookLoading(true);
     try {
-      const result = await searchFrappeLink({ txt: query, doctype: "Book", reference_doctype: "Book Reservation" });
-      setBookSuggestions(result.message ?? []);
+      if (activeTab === "reservation") {
+        const result = await searchFrappeLink({ txt: query, doctype: "Book", reference_doctype: "Book Reservation" });
+        setBookSuggestions(result.message ?? []);
+      } else {
+        const result = await getAssetList({
+          filters: [
+            ["Asset", "purchase_date", "is", "set"],
+            ["Asset", "name", "like", `%${query}%`]
+          ]
+        });
+
+        let suggestions: SearchLinkResult[] = [];
+        if (result.message) {
+          if (Array.isArray(result.message)) {
+            suggestions = result.message.map((item: any) => ({
+              value: item.name,
+              description: item.asset_name || item.name,
+              status: item.status
+            }));
+          } else if (result.message.values && result.message.keys) {
+            const keys = result.message.keys as string[];
+            const nameIdx = keys.findIndex(k => k === "name" || k === "`tabAsset`.`name`");
+            const assetNameIdx = keys.findIndex(k => k === "asset_name" || k === "`tabAsset`.`asset_name`");
+            const statusIdx = keys.findIndex(k => k === "status" || k === "`tabAsset`.`status`");
+
+            suggestions = result.message.values.map((row: any[]) => ({
+              value: row[nameIdx !== -1 ? nameIdx : 0],
+              description: row[assetNameIdx !== -1 ? assetNameIdx : (nameIdx !== -1 ? nameIdx : 0)],
+              status: row[statusIdx !== -1 ? statusIdx : 14]
+            }));
+          }
+        }
+        setBookSuggestions(suggestions);
+      }
     } catch (error) {
       setBookSuggestions([]);
     } finally {
@@ -481,7 +513,7 @@ export const TransactionForm = ({
                 control={form.control}
                 name="barcode"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="relative">
                     <FormLabel>Book information</FormLabel>
                     <FormControl>
                       <div className="relative">
@@ -574,11 +606,18 @@ export const TransactionForm = ({
                         {bookSuggestions.map((m, idx) => (
                           <div
                             key={idx}
-                            className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                            className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0 flex justify-between items-center"
                             onClick={() => handleBookSuggestionClick(m)}
                           >
-                            <div className="font-medium">{m.value}</div>
-                            <div className="text-sm text-muted-foreground">{m.description}</div>
+                            <div>
+                              <div className="font-medium">{m.value}</div>
+                              <div className="text-sm text-muted-foreground">{m.description}</div>
+                            </div>
+                            {m.status && (
+                              <div>
+                                <span className="data-chip">{m.status}</span>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

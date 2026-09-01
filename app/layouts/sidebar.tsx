@@ -24,7 +24,7 @@ const Sidebar = () => {
             </header>
             <div className="min-h-[calc(100vh-150px)]">
                 <ul>
-                    <MenuLink
+                    {/* <MenuLink
                         href="/dashboard"
                         pathname={pathname}
                         label="Dashboard"
@@ -38,7 +38,7 @@ const Sidebar = () => {
                                     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         }
-                    />
+                    /> */}
                     <MenuLink
                         href="/book-transactions"
                         pathname={pathname}

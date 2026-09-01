@@ -15,7 +15,7 @@ function CallbackContent() {
         if (code) {
             getFrappeToken({ code }).then((data) => {
                 localStorage.setItem('token', JSON.stringify(data));
-                router.replace('/dashboard');
+                router.replace('/book-transactions');
             });
         }
     }, [searchParams, router]);

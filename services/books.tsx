@@ -421,7 +421,11 @@ export const getAssetByBarcode = async ({
         // Ideal case: message is already the full asset details object
 
         if (!data.message.asset_id) {
-            throw new Error("Book is not issued");
+            if (transactionType === "Issue") {
+                throw new Error("Book is not availabel");
+            } else {
+                throw new Error("Book is not issued");
+            }
         }
         message = data.message as AssetByBarcodeMessage;
     } else {
@@ -429,7 +433,11 @@ export const getAssetByBarcode = async ({
         const doc = data.docs?.[0];
         if (!doc) throw new Error("No asset details returned for this barcode");
         if (!data.message.asset_id) {
-            throw new Error("Book is not issued");
+            if (transactionType === "Issue") {
+                throw new Error("Book is not availabel");
+            } else {
+                throw new Error("Book is not issued");
+            }
         }
         message = {
             asset_id: doc.scan_barcode || barcode,
@@ -587,6 +595,7 @@ export const countBooksIssued = async ({
 export interface SearchLinkResult {
     value: string;
     description: string;
+    status?: string;
 }
 
 
@@ -791,6 +800,60 @@ export const get_requested_book_reservations = async ({
     const data = await res.json();
 
     if (!res.ok) throw new Error(data.message || data.error || 'Failed to fetch requested book reservations');
+
+    return data;
+};
+
+export const getAssetList = async ({
+    start = 0,
+    page_length = 20,
+    filters = [["Asset", "purchase_date", "is", "set"]],
+    order_by = "`tabAsset`.`modified` desc"
+}: {
+    start?: number;
+    page_length?: number;
+    filters?: any[];
+    order_by?: string;
+}) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token found');
+    const { access_token } = JSON.parse(token);
+
+    const body = new URLSearchParams({
+        doctype: "Asset",
+        fields: JSON.stringify([
+            "`tabAsset`.`name`", "`tabAsset`.`owner`", "`tabAsset`.`creation`", "`tabAsset`.`modified`",
+            "`tabAsset`.`modified_by`", "`tabAsset`.`_user_tags`", "`tabAsset`.`_comments`",
+            "`tabAsset`.`_assign`", "`tabAsset`.`_liked_by`", "`tabAsset`.`docstatus`",
+            "`tabAsset`.`idx`", "`tabAsset`.`asset_name`", "`tabAsset`.`asset_category`",
+            "`tabAsset`.`location`", "`tabAsset`.`status`", "`tabAsset`.`image`"
+        ]),
+        filters: JSON.stringify(filters),
+        order_by: order_by,
+        start: start.toString(),
+        page_length: page_length.toString(),
+        view: "List",
+        group_by: "",
+        with_comment_count: "1"
+    });
+
+    const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.reportview.get`,
+        {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+                Accept: 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: body.toString(),
+        }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.message || data.error || 'Failed to fetch asset list');
 
     return data;
 };

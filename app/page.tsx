@@ -32,7 +32,7 @@ export default function Home() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      router.push('/dashboard');
+      router.push('/book-transactions');
     }
   }, [router]);
 
@@ -50,7 +50,7 @@ export default function Home() {
     onSuccess: (session) => {
       signIn(session);
       toast.success(`Welcome back, ${session.user.name}.`);
-      router.push("/dashboard");
+      router.push("/book-transactions");
     },
     onError: (error: Error) => {
       form.setError("root", { message: error.message });
