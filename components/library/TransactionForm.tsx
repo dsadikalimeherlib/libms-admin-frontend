@@ -316,7 +316,7 @@ export const TransactionForm = ({
                     setTabAssetData(null);
                   } else {
                     toast.success(validatedTransaction.message);
-                    setMember((prev) => prev ? { ...prev, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
+                    setMember(member ? { ...member, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
                   }
                 } catch (error: any) {
                   toast.error(error.message || "Failed to validate member");
@@ -357,7 +357,7 @@ export const TransactionForm = ({
                   setTabAssetData(null);
                 } else {
                   toast.success(validatedTransaction.message);
-                  setMember((prev) => prev ? { ...prev, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
+                  setMember(member ? { ...member, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
                 }
               } catch (error: any) {
                 toast.error(error.message || "Failed to validate member");
@@ -565,7 +565,7 @@ export const TransactionForm = ({
                                             setTabAssetData(null);
                                           } else {
                                             toast.success(validatedTransaction.message);
-                                            setMember((prev) => prev ? { ...prev, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
+                                            setMember(member ? { ...member, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
                                           }
                                         } catch (error: any) {
                                           toast.error(error.message || "Failed to validate member");
