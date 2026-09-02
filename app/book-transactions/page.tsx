@@ -5,11 +5,26 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import MainLayout from "../layouts/main-layout";
 import Header from "../layouts/header";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { getMemberList } from "@/services/members";
 
 
 const Dashboard = () => {
     const [dueMessage, setDueMessage] = useState<string | null>(null);
     const [duePaymentId, setDuePaymentId] = useState<string | null>(null);
+    const [isPaying, setIsPaying] = useState(false);
+
+    const handlePayNow = async () => {
+        if (!duePaymentId) return;
+        setIsPaying(true);
+        try {
+            await getMemberList({ docname: duePaymentId, generateBill: true });
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsPaying(false);
+        }
+    };
 
     return (
         <MainLayout>
@@ -23,7 +38,9 @@ const Dashboard = () => {
                     </Header>
                     {dueMessage && <div className="text-destructive font-medium bg-destructive/10 p-4 rounded-md mt-[30px] mb-[-20px] flex justify-between items-center">
                         {dueMessage}
-                        <Link className="bg-[#fff] rounded-md px-2" href={`${process.env.NEXT_PUBLIC_API_URL}/app/payment-entry/${duePaymentId}/`} target="_blank" rel="noopener noreferrer">Pay now</Link>
+                        <Button className=" rounded-md px-2" onClick={handlePayNow} disabled={isPaying}>
+                            {isPaying ? "Processing..." : "Pay now"}
+                        </Button>
                     </div>}
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
 

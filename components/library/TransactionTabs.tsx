@@ -361,14 +361,14 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       form.clearErrors();
       toast.success("Book(s) returned successfully.");
       queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
-      
+
       if (data && data.name) {
         get_requested_book_reservations({ self_name: data.name })
           .then((res) => {
             if (res && res.message) {
               // The API might return a message about reservation status
               if (typeof res.message === 'string') {
-                 toast.info(res.message);
+                toast.info(res.message);
               }
             }
           })
@@ -535,7 +535,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       let hasDue = false;
       if (customerData?.customer) {
         try {
-          const invoices = await getMemberList({ docname: customerData.customer });
+          const invoices = await getMemberList({ docname: customerData.customer, generateBill: false });
           if (invoices && invoices.length > 0) {
             const totalDue = invoices.reduce((sum: number, inv: any) => sum + (inv.outstanding_amount || 0), 0);
             if (totalDue > 0) {
@@ -544,7 +544,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
               if (setDuePaymentId) {
                 const firstDueInvoice = invoices.find((inv: any) => (inv.outstanding_amount || 0) > 0);
                 if (firstDueInvoice) {
-                  setDuePaymentId(firstDueInvoice.name.replace('SINV', 'PAY'));
+                  setDuePaymentId(customerData.customer);
                 }
               }
             } else {
