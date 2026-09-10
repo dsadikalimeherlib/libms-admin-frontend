@@ -2,7 +2,29 @@ import { redirectToLogin } from "@/lib/utils";
 
 
 
-export const validateMembers = async ({ text = '' }: { text: string }) => {
+export const validateMembers = async ({
+    text = '',
+    doctype = 'Member',
+    ignore_user_permissions = 0,
+    reference_doctype = 'Book Transaction',
+    page_length = 25,
+    link_fieldname = 'member',
+    filters = { membership_status: 'Active' },
+    fields_to_fetch = [
+        "member_name",
+        "membership_status",
+        "mobile",
+    ],
+}: {
+    text: string;
+    doctype?: string;
+    ignore_user_permissions?: string | number;
+    reference_doctype?: string;
+    page_length?: string | number;
+    link_fieldname?: string;
+    filters?: Record<string, unknown> | string;
+    fields_to_fetch?: string[] | string;
+}) => {
     const token = localStorage.getItem('token');
 
     if (!token) {
@@ -13,24 +35,26 @@ export const validateMembers = async ({ text = '' }: { text: string }) => {
     const { access_token } = JSON.parse(token);
 
     const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.validate_link`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.validate_link_and_fetch`,
         {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${access_token}`,
                 Accept: "application/json",
                 "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                "X-Frappe-Doctype": "Member",
+                "X-Frappe-Doctype": doctype,
                 "X-Requested-With": "XMLHttpRequest",
             },
             body: new URLSearchParams({
-                doctype: "Member",
+                txt: text,
+                doctype,
+                ignore_user_permissions: String(ignore_user_permissions),
+                reference_doctype,
+                page_length: String(page_length),
+                link_fieldname,
+                filters: typeof filters === "string" ? filters : JSON.stringify(filters),
                 docname: text,
-                fields: JSON.stringify([
-                    "member_name",
-                    "membership_status",
-                    "mobile",
-                ]),
+                fields_to_fetch: typeof fields_to_fetch === "string" ? fields_to_fetch : JSON.stringify(fields_to_fetch),
             }),
         }
     );
@@ -44,6 +68,13 @@ export const validateMembers = async ({ text = '' }: { text: string }) => {
 
     if (!res.ok) {
         throw new Error(data.error || "Failed to validate member");
+    }
+
+    if (data.message && typeof data.message === "object") {
+        return {
+            name: text,
+            ...data.message,
+        };
     }
 
     return data.message;
