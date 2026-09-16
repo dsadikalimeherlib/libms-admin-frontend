@@ -258,6 +258,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
   const [assetDoc, setAssetDoc] = useState<AssetDoc | null>(null);
   const [tabAssetData, setTabAssetData] = useState<TabAssetData | null>(null);
   const [queuedAssets, setQueuedAssets] = useState<AssetByBarcodeMessage[]>([]);
+  const [queuedRenewAssets, setQueuedRenewAssets] = useState<AssetByBarcodeMessage[]>([]);
   const [tabAssetLoading, setTabAssetLoading] = useState(false);
   const [memberSuggestions, setMemberSuggestions] = useState<MemberSuggestion[]>([]);
   const [memberInputFocused, setMemberInputFocused] = useState(false);
@@ -314,6 +315,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
     setSavedDocName("");
     setOtpVerified(false);
     setQueuedAssets([]);
+    setQueuedRenewAssets([]);
     setReturnDate(format(new Date(), 'yyyy-MM-dd'));
   }, [activeTab]);
 
@@ -381,9 +383,10 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
   });
 
   const renewMutation = useMutation({
-    mutationFn: ({ totalDueCharges, createInvoice }: { totalDueCharges: number, createInvoice: number }) => submitBookRenew({ member: member!, assetData: tabAssetData!, totalDueCharges, createInvoice }),
+    mutationFn: ({ totalDueCharges, createInvoice }: { totalDueCharges: number, createInvoice: number }) => submitBookRenew({ member: member!, queuedRenewAssets, totalDueCharges, createInvoice }),
     onSuccess: () => {
       setTabAssetData(null);
+      setQueuedRenewAssets([]);
       setScannedBook(null);
       setMember(null);
       setSavedDocName("");
@@ -391,7 +394,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       form.setValue("memberQuery", "", { shouldValidate: false });
       form.setValue("barcode", "", { shouldValidate: false });
       form.clearErrors();
-      toast.success("Book renewed successfully.");
+      toast.success("Book(s) renewed successfully.");
       queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
     },
     onError: (error: Error) => {
@@ -443,7 +446,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
 
   const onSubmitRenew = (totalDueCharges: number, createInvoice: number) => {
     if (!member) { toast.error("Member is required."); return; }
-    if (!tabAssetData?.member_details) { toast.error("Scan a barcode to load transaction details."); return; }
+    if (queuedRenewAssets.length === 0) { toast.error("Scan a barcode to load transaction details."); return; }
     renewMutation.mutate({ totalDueCharges, createInvoice });
   };
 
@@ -472,6 +475,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
     setAssetDoc(null);
     setTabAssetData(null);
     setQueuedAssets([]);
+    setQueuedRenewAssets([]);
     setSavedDocName("");
     setOtpVerified(false);
     setMemberSuggestions([]);
@@ -579,7 +583,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         : currentTab === "return"
           ? queuedAssets.some(asset => asset.asset_id === name)
           : currentTab === "renew"
-            ? tabAssetData?.asset_id === name
+            ? queuedRenewAssets.some(asset => asset.asset_id === name)
             : false;
 
       if (isAlreadyQueued) {
@@ -617,7 +621,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
 
       let localDaysLimit = maxIssueDays;
       let calculatedDueCharges = 0;
-      if (currentTab === "issue" || currentTab === "renew" || currentTab === "return") {
+      if (currentTab === "issue" || currentTab === "renew") {
         const allowedData = await validateMemberToIssueBook({
           member: currentMemberName || "",
         })
@@ -634,7 +638,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
           return false;
         }
 
-        if (currentTab === "return" || currentTab === "renew") {
+        if (currentTab === "renew") {
           const perDayCharge = allowedData.message && allowedData.message.length > 2 ? Number(allowedData.message[2]) : 0;
           if (data.member_details?.due_date) {
             const dueDate = new Date(data.member_details.due_date);
@@ -696,6 +700,8 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         setQueuedBooks((current) => [...current, buildIssuePreview(mappedBook, member, maxIssueDays)]);
       } else if (currentTab === "return") {
         setQueuedAssets((current) => [...current, data]);
+      } else if (currentTab === "renew") {
+        setQueuedRenewAssets((current) => [...current, data]);
       }
       return true;
     } catch (error: any) {
@@ -781,8 +787,8 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       </div>
       <div className={cn(activeTab !== "renew" && "hidden", "mt-1")}>
         <RenewTab
-          assetData={tabAssetData}
-          setTabAssetData={setTabAssetData}
+          queuedRenewAssets={queuedRenewAssets}
+          setQueuedRenewAssets={setQueuedRenewAssets}
           loading={tabAssetLoading}
           renewMutation={renewMutation}
           onSubmitRenew={onSubmitRenew}

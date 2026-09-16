@@ -8,7 +8,7 @@ export interface UseTransactionOtpProps {
   member?: Member | null;
   queuedBooks?: any[];
   queuedAssets?: any[];
-  assetData?: any;
+  queuedRenewAssets?: any[];
   barcode?: string;
   totalDueCharges?: number;
   createInvoice?: number;
@@ -22,7 +22,7 @@ export const useTransactionOtp = ({
   member,
   queuedBooks,
   queuedAssets,
-  assetData,
+  queuedRenewAssets,
   barcode,
   totalDueCharges,
   createInvoice,
@@ -54,7 +54,7 @@ export const useTransactionOtp = ({
       toast.error("Scan a barcode to load transaction details.");
       return;
     }
-    if (transactionType === "Renew" && (!assetData || !assetData.member_details)) {
+    if (transactionType === "Renew" && (!queuedRenewAssets || queuedRenewAssets.length === 0)) {
       toast.error("Scan a barcode to load transaction details.");
       return;
     }
@@ -66,7 +66,7 @@ export const useTransactionOtp = ({
       if (transactionType === "Renew") {
         saved = await submitBookRenew({
           member,
-          assetData,
+          queuedRenewAssets: queuedRenewAssets!,
           totalDueCharges,
           createInvoice,
           action: "Save",
@@ -135,7 +135,7 @@ export const useTransactionOtp = ({
       if (transactionType === "Renew") {
         res = await submitBookRenew({
           member,
-          assetData,
+          queuedRenewAssets: queuedRenewAssets!,
           totalDueCharges,
           createInvoice,
           action: "Save",

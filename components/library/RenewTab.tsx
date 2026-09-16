@@ -13,8 +13,8 @@ import { useTransactionOtp } from "@/hooks/useTransactionOtp";
 import { TabAssetData, EmptyStateRow, SubmitBar, OtpVerificationDialog } from "./TransactionTabs";
 
 export const RenewTab = ({
-  assetData,
-  setTabAssetData,
+  queuedRenewAssets,
+  setQueuedRenewAssets,
   loading,
   renewMutation,
   onSubmitRenew,
@@ -26,8 +26,8 @@ export const RenewTab = ({
   otpVerified,
   setOtpVerified,
 }: {
-  assetData?: TabAssetData | null;
-  setTabAssetData: (data: TabAssetData | null) => void;
+  queuedRenewAssets: TabAssetData[];
+  setQueuedRenewAssets: React.Dispatch<React.SetStateAction<TabAssetData[]>>;
   loading?: boolean;
   renewMutation: any;
   onSubmitRenew: (totalDueCharges: number, createInvoice: number) => void;
@@ -39,8 +39,7 @@ export const RenewTab = ({
   otpVerified?: boolean;
   setOtpVerified?: (verified: boolean) => void;
 }) => {
-  const md = assetData?.member_details;
-  const submitDisabled = !assetData || !md || !member || renewMutation.isPending || hasDueCharges;
+  const submitDisabled = queuedRenewAssets.length === 0 || !member || renewMutation.isPending || hasDueCharges;
   const [totalDueCharges, setTotalDueCharges] = useState(0);
   const [createInvoice, setCreateInvoice] = useState(1);
   const [returnDate, setReturnDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
@@ -57,7 +56,7 @@ export const RenewTab = ({
   } = useTransactionOtp({
     transactionType: "Renew",
     member,
-    assetData,
+    queuedRenewAssets,
     totalDueCharges,
     createInvoice,
     savedDocName,
@@ -66,26 +65,32 @@ export const RenewTab = ({
   });
 
   useEffect(() => {
-    setTotalDueCharges(assetData?.total_due_charges || 0);
-    if (!assetData) {
+    const total = queuedRenewAssets.reduce((sum, asset) => sum + (asset.total_due_charges || 0), 0);
+    setTotalDueCharges(total);
+    if (queuedRenewAssets.length === 0) {
       setReturnDate(format(new Date(), "yyyy-MM-dd"));
     }
-  }, [assetData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queuedRenewAssets]);
 
   useEffect(() => {
-    if (assetData && setTabAssetData && returnDate) {
-      let newDueDateStr = format(addDays(new Date(returnDate), maxIssueDays || 30), 'yyyy-MM-dd');
-      if (member?.due_date) {
-        const memberDueDate = new Date(member.due_date);
-        if (new Date(newDueDateStr) > memberDueDate) {
-          newDueDateStr = format(memberDueDate, 'yyyy-MM-dd');
+    if (queuedRenewAssets.length > 0 && setQueuedRenewAssets && returnDate) {
+      setQueuedRenewAssets((prev) => prev.map((asset) => {
+        let newDueDateStr = format(addDays(new Date(returnDate), maxIssueDays || 30), 'yyyy-MM-dd');
+        if (member?.due_date) {
+          const memberDueDate = new Date(member.due_date);
+          if (new Date(newDueDateStr) > memberDueDate) {
+            newDueDateStr = format(memberDueDate, 'yyyy-MM-dd');
+          }
         }
-      }
-      if (assetData.dueDate !== newDueDateStr) {
-        setTabAssetData({ ...assetData, dueDate: newDueDateStr });
-      }
+        if (asset.dueDate !== newDueDateStr) {
+          return { ...asset, dueDate: newDueDateStr };
+        }
+        return asset;
+      }));
     }
-  }, [member?.name, maxIssueDays, returnDate, assetData?.asset_id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [member?.name, maxIssueDays, returnDate]); // removed asset dependency because it updates all
 
   return (
     <div className="space-y-6">
@@ -93,11 +98,11 @@ export const RenewTab = ({
         <div className="section-frame flex gap-3 ">
           <div>
             <p className="section-heading">Issue Date</p>
-            {md?.transaction_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(md.transaction_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+            {queuedRenewAssets.length > 0 && queuedRenewAssets[0].member_details?.transaction_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(queuedRenewAssets[0].member_details.transaction_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
           </div>
           <div>
             <p className="section-heading">Return Date</p>
-            {assetData ? (
+            {queuedRenewAssets.length > 0 ? (
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -134,7 +139,7 @@ export const RenewTab = ({
           </div>
           <div>
             <p className="section-heading">Due Date</p>
-            {md?.due_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(md.due_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+            {queuedRenewAssets.length > 0 && queuedRenewAssets[0].member_details?.due_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(queuedRenewAssets[0].member_details.due_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
           </div>
         </div>
         <div>
@@ -163,27 +168,31 @@ export const RenewTab = ({
                     <Loader2 className="mx-auto animate-spin" />
                   </TableCell>
                 </TableRow>
-              ) : assetData && md ? (
-                <TableRow>
-                  <TableCell>1</TableCell>
-                  <TableCell>{assetData.asset_id}</TableCell>
-                  <TableCell className="font-medium text-foreground">{assetData.asset_name}</TableCell>
-                  <TableCell>{formatDisplayDate(md.transaction_date)}</TableCell>
-                  <TableCell>{formatDisplayDate(md.due_date)}</TableCell>
-                  <TableCell>{formatDisplayDate(returnDate)}</TableCell>
-
-                  <TableCell>{assetData.dueDate ? format(new Date(assetData.dueDate), 'dd/MM/yyyy') : "—"}</TableCell>
-                  <TableCell>{assetData.total_due_charges ?? 0}</TableCell>
-                  <TableCell>
-                    <button
-                      type="button"
-                      className="text-sm font-medium text-destructive hover:underline"
-                      onClick={() => setTabAssetData(null)}
-                    >
-                      Remove
-                    </button>
-                  </TableCell>
-                </TableRow>
+              ) : queuedRenewAssets.length > 0 ? (
+                queuedRenewAssets.map((asset, index) => {
+                  const md = asset.member_details;
+                  return (
+                    <TableRow key={asset.asset_id}>
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>{asset.asset_id}</TableCell>
+                      <TableCell className="font-medium text-foreground">{asset.asset_name}</TableCell>
+                      <TableCell>{md?.transaction_date ? formatDisplayDate(md.transaction_date) : "--"}</TableCell>
+                      <TableCell>{md?.due_date ? formatDisplayDate(md.due_date) : "--"}</TableCell>
+                      <TableCell>{formatDisplayDate(returnDate)}</TableCell>
+                      <TableCell>{asset.dueDate ? format(new Date(asset.dueDate), 'dd/MM/yyyy') : "—"}</TableCell>
+                      <TableCell>{asset.total_due_charges ?? 0}</TableCell>
+                      <TableCell>
+                        <button
+                          type="button"
+                          className="text-sm font-medium text-destructive hover:underline"
+                          onClick={() => setQueuedRenewAssets(current => current.filter(a => a.asset_id !== asset.asset_id))}
+                        >
+                          Remove
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               ) : (
                 <EmptyStateRow message="Scan a barcode above and click Renew tab to load transaction." colSpan={9} />
               )}
@@ -220,7 +229,7 @@ export const RenewTab = ({
         onVerifyOTP={() => setOtpDialogOpen(true)}
         verifying={verifying}
         otpVerified={otpVerified}
-        disableGenerateOTP={!member || !assetData || hasDueCharges}
+        disableGenerateOTP={!member || queuedRenewAssets.length === 0 || hasDueCharges}
         disableVerifyOTP={!savedDocName || hasDueCharges}
       />
       <OtpVerificationDialog

@@ -264,7 +264,7 @@ export const submitBookTransaction = async ({
 
 export const submitBookRenew = async ({
     member,
-    assetData,
+    queuedRenewAssets,
     totalDueCharges = 0,
     createInvoice = 0,
     action = "Submit",
@@ -273,7 +273,7 @@ export const submitBookRenew = async ({
     otp_verified = 0,
 }: {
     member: any;
-    assetData: AssetByBarcodeMessage;
+    queuedRenewAssets: AssetByBarcodeMessage[];
     totalDueCharges?: number;
     createInvoice?: number;
     action?: "Save" | "Submit";
@@ -311,9 +311,6 @@ export const submitBookRenew = async ({
         const today = formatDate(new Date().toISOString());
         const renewDueDate = formatDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString());
         const tempName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
-        const rowName = Math.random().toString(36).substring(2, 12);
-
-        const md = assetData.member_details!;
 
         doc = {
             docstatus: 0,
@@ -333,27 +330,28 @@ export const submitBookRenew = async ({
             total_due_charges: totalDueCharges,
             book_transaction_detail: [],
             return_book_details: [],
-            renew_book_details: [
-                {
+            renew_book_details: queuedRenewAssets.map((asset, idx) => {
+                const md = asset.member_details;
+                return {
                     docstatus: 0,
                     doctype: "Renew Book Details",
-                    name: rowName,
+                    name: `new-renew-book-details-${Math.random().toString(36).substring(2, 12)}`,
                     __islocal: 1,
                     __unsaved: 1,
-                    access_no: assetData.asset_id,
-                    book_title: assetData.asset_name,
-                    issue_date: md.transaction_date,
-                    previous_due_date: md.due_date,
+                    access_no: asset.asset_id,
+                    book_title: asset.asset_name,
+                    issue_date: md?.transaction_date || today,
+                    previous_due_date: md?.due_date || today,
                     return_date: today,
-                    renew_due_date: renewDueDate,
-                    due_charges: assetData.total_due_charges || totalDueCharges || 0,
-                    transaction_no: md.name,
+                    renew_due_date: asset.dueDate || renewDueDate, // Using dueDate set by RenewTab if any
+                    due_charges: asset.total_due_charges || 0,
+                    transaction_no: md?.name || "",
                     parent: tempName,
                     parentfield: "renew_book_details",
                     parenttype: "Book Transaction",
-                    idx: 1,
-                },
-            ],
+                    idx: idx + 1,
+                };
+            }),
         };
     }
 
