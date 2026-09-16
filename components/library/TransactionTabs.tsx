@@ -596,7 +596,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         transactionType,
       });
 
-      if (currentTab === "return" && member?.name && data.member_details?.member && member.name !== data.member_details.member) {
+      if ((currentTab === "return" || currentTab === "renew") && member?.name && data.member_details?.member && member.name !== data.member_details.member) {
         toast.error("This book does not belong to the same member.");
         form.setValue("barcode", "", { shouldValidate: false });
         form.clearErrors("barcode");
@@ -606,7 +606,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       const memberQueryValue = form.getValues("memberQuery");
       let currentMemberName = member?.name;
 
-      if ((currentTab === "return" || currentTab === "renew") && !memberQueryValue && data.member_details?.member) {
+      if ((currentTab === "return" || currentTab === "renew") && !member && data.member_details?.member) {
         const memberId = data.member_details.member;
         form.setValue("memberQuery", memberId, { shouldValidate: false });
         const validatedMember = await validateMembers({ text: memberId });
@@ -780,7 +780,20 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
         />
       </div>
       <div className={cn(activeTab !== "renew" && "hidden", "mt-1")}>
-        <RenewTab assetData={tabAssetData} setTabAssetData={setTabAssetData} loading={tabAssetLoading} renewMutation={renewMutation} onSubmitRenew={onSubmitRenew} hasDueCharges={hasDueCharges} maxIssueDays={maxIssueDays} member={member} />
+        <RenewTab
+          assetData={tabAssetData}
+          setTabAssetData={setTabAssetData}
+          loading={tabAssetLoading}
+          renewMutation={renewMutation}
+          onSubmitRenew={onSubmitRenew}
+          hasDueCharges={hasDueCharges}
+          maxIssueDays={maxIssueDays}
+          member={member}
+          savedDocName={savedDocName}
+          setSavedDocName={setSavedDocName}
+          otpVerified={otpVerified}
+          setOtpVerified={setOtpVerified}
+        />
       </div>
       <div className={cn(activeTab !== "reservation" && "hidden", "mt-1")}>
         <ReservationTab

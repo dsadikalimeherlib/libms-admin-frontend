@@ -267,11 +267,19 @@ export const submitBookRenew = async ({
     assetData,
     totalDueCharges = 0,
     createInvoice = 0,
+    action = "Submit",
+    savedDocName,
+    otp,
+    otp_verified = 0,
 }: {
     member: any;
     assetData: AssetByBarcodeMessage;
     totalDueCharges?: number;
     createInvoice?: number;
+    action?: "Save" | "Submit";
+    savedDocName?: string;
+    otp?: string;
+    otp_verified?: number;
 }) => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('No token found');
@@ -282,55 +290,80 @@ export const submitBookRenew = async ({
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     };
 
-    const today = formatDate(new Date().toISOString());
-    const renewDueDate = formatDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString());
-    const tempName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
-    const rowName = Math.random().toString(36).substring(2, 12);
-
-    const md = assetData.member_details!;
-
-    const doc = {
-        docstatus: 0,
-        doctype: "Book Transaction",
-        name: tempName,
-        __islocal: 1,
-        __unsaved: 1,
-        transaction_type: "Renew",
-        member: member.name,
-        member_name: member.member_name || member.name,
-        membership_status: member.membership_status || "Active",
-        mobile: member.mobile || "",
-        otp_verified: 0,
-        scan_barcode: "",
-        create_invoice: createInvoice,
-        total_due_charges: totalDueCharges,
-        book_transaction_detail: [],
-        return_book_details: [],
-        renew_book_details: [
-            {
-                docstatus: 0,
-                doctype: "Renew Book Details",
-                name: rowName,
-                __islocal: 1,
-                __unsaved: 1,
-                access_no: assetData.asset_id,
-                book_title: assetData.asset_name,
-                issue_date: md.transaction_date,
-                previous_due_date: md.due_date,
-                return_date: today,
-                renew_due_date: renewDueDate,
-                due_charges: assetData.total_due_charges || totalDueCharges || 0,
-                transaction_no: md.name,
-                parent: tempName,
-                parentfield: "renew_book_details",
-                parenttype: "Book Transaction",
-                idx: 1,
+    let doc: any;
+    if (savedDocName) {
+        const getRes = await fetch(`${process.env.NEXT_PUBLIC_FRAPPE_URL}/api/resource/Book%20Transaction/${savedDocName}`, {
+            headers: {
+                "Authorization": `Bearer ${access_token}`,
+                "Content-Type": "application/json",
             },
-        ],
-    };
+        });
+        const getData = await getRes.json();
+        if (!getRes.ok) {
+            throw new Error(getData.error || "Failed to fetch existing transaction");
+        }
+        doc = getData.message;
+        if (otp) {
+            doc.otp = otp;
+            doc.otp_verified = otp_verified;
+        }
+    } else {
+        const today = formatDate(new Date().toISOString());
+        const renewDueDate = formatDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString());
+        const tempName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
+        const rowName = Math.random().toString(36).substring(2, 12);
 
-    const data = await submitFrappeDocument(doc, "Submit", access_token, "Failed to submit renew transaction");
-    return data.docs?.[0] || data.message || {};
+        const md = assetData.member_details!;
+
+        doc = {
+            docstatus: 0,
+            doctype: "Book Transaction",
+            name: tempName,
+            __islocal: 1,
+            __unsaved: 1,
+            transaction_type: "Renew",
+            member: member.name,
+            member_name: member.member_name || member.name,
+            membership_status: member.membership_status || "Active",
+            mobile: member.mobile || "",
+            otp: otp || null,
+            otp_verified: otp_verified || 0,
+            scan_barcode: "",
+            create_invoice: createInvoice,
+            total_due_charges: totalDueCharges,
+            book_transaction_detail: [],
+            return_book_details: [],
+            renew_book_details: [
+                {
+                    docstatus: 0,
+                    doctype: "Renew Book Details",
+                    name: rowName,
+                    __islocal: 1,
+                    __unsaved: 1,
+                    access_no: assetData.asset_id,
+                    book_title: assetData.asset_name,
+                    issue_date: md.transaction_date,
+                    previous_due_date: md.due_date,
+                    return_date: today,
+                    renew_due_date: renewDueDate,
+                    due_charges: assetData.total_due_charges || totalDueCharges || 0,
+                    transaction_no: md.name,
+                    parent: tempName,
+                    parentfield: "renew_book_details",
+                    parenttype: "Book Transaction",
+                    idx: 1,
+                },
+            ],
+        };
+    }
+
+    const data = await submitFrappeDocument(doc, action, access_token, "Failed to submit renew transaction");
+    const returnedDoc = data.docs?.[0] || data.message || {};
+
+    return {
+        name: data.docinfo?.name || returnedDoc.name || "",
+        otp_verified: returnedDoc.otp_verified
+    };
 };
 
 export type AssetByBarcodeMessage = {

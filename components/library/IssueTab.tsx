@@ -13,6 +13,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 
+import { useTransactionOtp } from "@/hooks/useTransactionOtp";
+
 export interface IssueTabProps {
   form: UseFormReturn<IssueFormValues>;
   queuedBooks: IssuePreviewRow[];
@@ -63,15 +65,24 @@ export const IssueTab = ({
   hasDueCharges,
   maxIssueDays,
 }: IssueTabProps) => {
-  const [verifying, setVerifying] = useState(false);
-  const [otpDialogOpen, setOtpDialogOpen] = useState(false);
-  const [otpValue, setOtpValue] = useState("");
-  const [otpVerifying, setOtpVerifying] = useState(false);
-  const [generatedOtp, setGeneratedOtp] = useState<string>("");
-
-  useEffect(() => {
-    setGeneratedOtp("");
-  }, [member?.name]);
+  const {
+    verifying,
+    otpDialogOpen,
+    setOtpDialogOpen,
+    otpValue,
+    setOtpValue,
+    otpVerifying,
+    handleMemberVerification,
+    handleOtpVerify,
+  } = useTransactionOtp({
+    transactionType: "Issue",
+    member,
+    queuedBooks,
+    barcode: form.getValues("barcode"),
+    savedDocName,
+    setSavedDocName,
+    setOtpVerified,
+  });
 
   useEffect(() => {
     // Recalculate due date if member or maxIssueDays change
@@ -141,101 +152,6 @@ export const IssueTab = ({
   const error = form.formState.errors.root?.message
   const disabled = submitDisabled
 
-
-  const handleMemeberVerification = async () => {
-    if (!member) {
-      toast.error("Please select a member before verifying.");
-      return;
-    }
-    if (queuedBooks.length === 0) {
-      toast.error("Add at least one book before verifying.");
-      return;
-    }
-    setVerifying(true);
-    try {
-      // Step 1: Save the transaction (action="Save") to obtain a docname
-      const saved = await submitBookTransaction({
-        transaction_type: "Issue",
-        member,
-        queuedBooks,
-        barcode: form.getValues("barcode"),
-        action: "Save",
-        savedDocName,
-      });
-
-      const docname: string =
-        saved.name ||
-        (saved as any)?.rows?.[0]?.parent ||
-        "";
-
-      if (!docname) {
-        throw new Error("Could not determine document name from saved transaction.");
-      }
-
-      if (setSavedDocName) {
-        setSavedDocName(docname);
-      }
-
-      // Step 2: Generate OTP for the saved document
-      await generateOTP({ docname });
-
-      // Step 3: Fetch transaction document details to get the generated OTP
-      try {
-        const docDetails = await getBookTransaction({ docname });
-        const otp = docDetails.docs?.[0]?.otp;
-        if (otp) {
-          setGeneratedOtp(String(otp));
-        }
-      } catch (fetchErr) {
-        console.error("Failed to fetch generated OTP:", fetchErr);
-      }
-
-      toast.success("OTP sent successfully for member verification.");
-    } catch (err: any) {
-      toast.error(err?.message ?? "Member verification failed.");
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const handleOtpVerify = async () => {
-    if (!otpValue || otpValue.length !== 6) {
-      toast.error("Please enter a valid 6-digit OTP.");
-      return;
-    }
-    if (generatedOtp && otpValue !== generatedOtp) {
-      toast.error("Invalid OTP. Please try again.");
-      return;
-    }
-    setOtpVerifying(true);
-    try {
-      const res = await submitBookTransaction({
-        transaction_type: "Issue",
-        member,
-        queuedBooks,
-        barcode: form.getValues("barcode"),
-        action: "Save",
-        savedDocName,
-        otp: otpValue,
-        otp_verified: 1
-      });
-
-      if (res.otp_verified) {
-        toast.success("OTP verified successfully.");
-        if (setOtpVerified) {
-          setOtpVerified(true);
-        }
-        setOtpDialogOpen(false);
-        setOtpValue("");
-      } else {
-        toast.error("Invalid OTP or verification failed.");
-      }
-    } catch (err: any) {
-      toast.error(err?.message ?? "OTP verification failed.");
-    } finally {
-      setOtpVerifying(false);
-    }
-  };
 
 
   return (
@@ -360,7 +276,7 @@ export const IssueTab = ({
         label="Submit Issue"
         onClick={onSubmit}
         onCancel={onCancel}
-        onGenerateOTP={handleMemeberVerification}
+        onGenerateOTP={handleMemberVerification}
         onVerifyOTP={() => setOtpDialogOpen(true)}
         verifying={verifying}
         otpVerified={otpVerified}

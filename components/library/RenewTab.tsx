@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { formatDisplayDate, type Member } from "@/lib/mock-library-api";
-import { TabAssetData, EmptyStateRow, SubmitBar } from "./TransactionTabs";
+import { useTransactionOtp } from "@/hooks/useTransactionOtp";
+import { TabAssetData, EmptyStateRow, SubmitBar, OtpVerificationDialog } from "./TransactionTabs";
 
 export const RenewTab = ({
   assetData,
@@ -20,6 +21,10 @@ export const RenewTab = ({
   hasDueCharges,
   maxIssueDays,
   member,
+  savedDocName,
+  setSavedDocName,
+  otpVerified,
+  setOtpVerified,
 }: {
   assetData?: TabAssetData | null;
   setTabAssetData: (data: TabAssetData | null) => void;
@@ -29,12 +34,36 @@ export const RenewTab = ({
   hasDueCharges?: boolean;
   maxIssueDays?: number;
   member?: Member | null;
+  savedDocName?: string;
+  setSavedDocName?: (name: string) => void;
+  otpVerified?: boolean;
+  setOtpVerified?: (verified: boolean) => void;
 }) => {
   const md = assetData?.member_details;
-  const submitDisabled = !assetData || !md || renewMutation.isPending || hasDueCharges;
+  const submitDisabled = !assetData || !md || !member || renewMutation.isPending || hasDueCharges;
   const [totalDueCharges, setTotalDueCharges] = useState(0);
   const [createInvoice, setCreateInvoice] = useState(1);
   const [returnDate, setReturnDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
+
+  const {
+    verifying,
+    otpDialogOpen,
+    setOtpDialogOpen,
+    otpValue,
+    setOtpValue,
+    otpVerifying,
+    handleMemberVerification,
+    handleOtpVerify,
+  } = useTransactionOtp({
+    transactionType: "Renew",
+    member,
+    assetData,
+    totalDueCharges,
+    createInvoice,
+    savedDocName,
+    setSavedDocName,
+    setOtpVerified,
+  });
 
   useEffect(() => {
     setTotalDueCharges(assetData?.total_due_charges || 0);
@@ -187,6 +216,22 @@ export const RenewTab = ({
         loading={renewMutation.isPending}
         label="Submit Renew"
         onClick={() => onSubmitRenew(totalDueCharges, createInvoice)}
+        onGenerateOTP={handleMemberVerification}
+        onVerifyOTP={() => setOtpDialogOpen(true)}
+        verifying={verifying}
+        otpVerified={otpVerified}
+        disableGenerateOTP={!member || !assetData || hasDueCharges}
+        disableVerifyOTP={!savedDocName || hasDueCharges}
+      />
+      <OtpVerificationDialog
+        open={otpDialogOpen}
+        onOpenChange={setOtpDialogOpen}
+        memberMobile={member?.mobile}
+        otpValue={otpValue}
+        setOtpValue={setOtpValue}
+        otpVerifying={otpVerifying}
+        onVerify={handleOtpVerify}
+        onCancel={() => setOtpDialogOpen(false)}
       />
     </div>
   );

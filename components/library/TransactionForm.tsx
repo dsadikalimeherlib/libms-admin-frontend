@@ -316,7 +316,7 @@ export const TransactionForm = ({
                     setTabAssetData(null);
                   } else {
                     toast.success(validatedTransaction.message);
-                    setMember(member ? { ...member, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
+                    setMember((prev: any) => prev ? { ...prev, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
                   }
                 } catch (error: any) {
                   toast.error(error.message || "Failed to validate member");
@@ -326,9 +326,9 @@ export const TransactionForm = ({
                 memberInputRef.current?.focus();
               }, 10);
             } else if (activeTab === "return") {
-              setTimeout(() => {
-                memberInputRef.current?.focus();
-              }, 10);
+              // setTimeout(() => {
+              //   memberInputRef.current?.focus();
+              // }, 10);
             }
           } else {
             setTimeout(() => {
@@ -357,7 +357,7 @@ export const TransactionForm = ({
                   setTabAssetData(null);
                 } else {
                   toast.success(validatedTransaction.message);
-                  setMember(member ? { ...member, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
+                  setMember((prev: any) => prev ? { ...prev, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
                 }
               } catch (error: any) {
                 toast.error(error.message || "Failed to validate member");
@@ -466,6 +466,7 @@ export const TransactionForm = ({
                           autoComplete="off"
                           onFocus={() => setMemberInputFocused(true)}
                           onBlur={() => setMemberInputFocused(false)}
+                          disabled={activeTab === "renew" || activeTab === "return"}
                         />
                         {memberLoading && (
                           <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
@@ -565,7 +566,7 @@ export const TransactionForm = ({
                                             setTabAssetData(null);
                                           } else {
                                             toast.success(validatedTransaction.message);
-                                            setMember(member ? { ...member, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
+                                            setMember((prev: any) => prev ? { ...prev, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
                                           }
                                         } catch (error: any) {
                                           toast.error(error.message || "Failed to validate member");
@@ -574,7 +575,8 @@ export const TransactionForm = ({
                                       setTimeout(() => {
                                         memberInputRef.current?.focus();
                                       }, 10);
-                                    } else if (activeTab === "return") {
+                                    }
+                                    else if (activeTab === "return") {
                                       setTimeout(() => {
                                         memberInputRef.current?.focus();
                                       }, 10);
