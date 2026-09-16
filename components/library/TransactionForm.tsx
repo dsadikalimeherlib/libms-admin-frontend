@@ -142,7 +142,7 @@ export const BookDetails = ({ book, asset }: { book: Book; asset?: AssetDoc | nu
 export interface TransactionFormProps {
   form: UseFormReturn<IssueFormValues>;
   member: Member | null;
-  setMember: (m: Member | null) => void;
+  setMember: React.Dispatch<React.SetStateAction<Member | null>>;
   setQueuedBooks: (b: any[]) => void;
   setScannedBook: (b: Book | null) => void;
   setAssetDoc: (a: AssetDoc | null) => void;
