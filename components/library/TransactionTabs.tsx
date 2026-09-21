@@ -21,6 +21,7 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
+import { Input } from "@/components/ui/input";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
   cn,
@@ -97,6 +98,17 @@ export const EmptyStateRow = ({ message, colSpan }: { message: string; colSpan: 
   </TableRow>
 );
 
+export const TransactionRemarkInput = ({ remark, setRemark, id }: { remark?: string, setRemark?: (val: string) => void, id: string }) => (
+  <div className="flex flex-col gap-2 mt-4 mb-4">
+    <label htmlFor={id} className="text-sm font-medium">Remark</label>
+    <Input
+      id={id}
+      placeholder="Add a remark (optional)"
+      value={remark || ""}
+      onChange={(e) => setRemark && setRemark(e.target.value)}
+    />
+  </div>
+);
 
 
 export const SubmitBar = ({
@@ -128,6 +140,7 @@ export const SubmitBar = ({
 }) => (
   <div className="">
     <div className="flex justify-end gap-3 md:ml-auto">
+
       {onGenerateOTP && (
         <Button onClick={onGenerateOTP} disabled={disableGenerateOTP || verifying}>
           {verifying ? <Loader2 className="mr-2 animate-spin" /> : null}
@@ -274,6 +287,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
   const [maxIssueDays, setMaxIssueDays] = useState<number>(30);
   const [issuedCount, setIssuedCount] = useState<number>(0);
   const [maxIssueLimit, setMaxIssueLimit] = useState<number>(0);
+  const [remark, setRemark] = useState<string>("");
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const skipNextSearchRef = useRef(false);
@@ -329,7 +343,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
 
 
   const issueMutation = useMutation({
-    mutationFn: () => submitBookTransaction({ transaction_type: "Issue", member: member!, queuedBooks, barcode: form.getValues("barcode"), savedDocName }),
+    mutationFn: () => submitBookTransaction({ transaction_type: "Issue", member: member!, queuedBooks, barcode: form.getValues("barcode"), savedDocName, remark }),
     onSuccess: (result) => {
       setQueuedBooks([]);
       setMember(null);
@@ -337,6 +351,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       setOtpVerified(false);
       setScannedBook(null);
       setTabAssetData(null);
+      setRemark("");
       form.setValue("memberQuery", "", { shouldValidate: false });
       form.setValue("barcode", "", { shouldValidate: false });
       form.clearErrors();
@@ -349,7 +364,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
   });
 
   const returnMutation = useMutation({
-    mutationFn: ({ totalDueCharges, createInvoice }: { totalDueCharges: number, createInvoice: number }) => submitBookTransaction({ transaction_type: "Return", member: member!, queuedAssets, totalDueCharges, createInvoice }),
+    mutationFn: ({ totalDueCharges, createInvoice }: { totalDueCharges: number, createInvoice: number }) => submitBookTransaction({ transaction_type: "Return", member: member!, queuedAssets, totalDueCharges, createInvoice, remark }),
     onSuccess: (data) => {
       setTabAssetData(null);
       setQueuedAssets([]);
@@ -358,6 +373,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       setMember(null);
       setSavedDocName("");
       setOtpVerified(false);
+      setRemark("");
       form.setValue("memberQuery", "", { shouldValidate: false });
       form.setValue("barcode", "", { shouldValidate: false });
       form.clearErrors();
@@ -383,7 +399,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
   });
 
   const renewMutation = useMutation({
-    mutationFn: ({ totalDueCharges, createInvoice }: { totalDueCharges: number, createInvoice: number }) => submitBookRenew({ member: member!, queuedRenewAssets, totalDueCharges, createInvoice }),
+    mutationFn: ({ totalDueCharges, createInvoice }: { totalDueCharges: number, createInvoice: number }) => submitBookRenew({ member: member!, queuedRenewAssets, totalDueCharges, createInvoice, remark }),
     onSuccess: () => {
       setTabAssetData(null);
       setQueuedRenewAssets([]);
@@ -391,6 +407,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
       setMember(null);
       setSavedDocName("");
       setOtpVerified(false);
+      setRemark("");
       form.setValue("memberQuery", "", { shouldValidate: false });
       form.setValue("barcode", "", { shouldValidate: false });
       form.clearErrors();
@@ -766,6 +783,8 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
           setOtpVerified={setOtpVerified}
           hasDueCharges={hasDueCharges}
           maxIssueDays={maxIssueDays}
+          remark={remark}
+          setRemark={setRemark}
         />
       </div>
       <div className={cn(activeTab !== "return" && "hidden", "mt-1")}>
@@ -783,6 +802,8 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
           hasDueCharges={hasDueCharges}
           returnDate={returnDate}
           setReturnDate={setReturnDate}
+          remark={remark}
+          setRemark={setRemark}
         />
       </div>
       <div className={cn(activeTab !== "renew" && "hidden", "mt-1")}>
@@ -799,6 +820,8 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
           setSavedDocName={setSavedDocName}
           otpVerified={otpVerified}
           setOtpVerified={setOtpVerified}
+          remark={remark}
+          setRemark={setRemark}
         />
       </div>
       <div className={cn(activeTab !== "reservation" && "hidden", "mt-1")}>

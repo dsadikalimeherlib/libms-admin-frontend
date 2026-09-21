@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { formatDisplayDate, type Member } from "@/lib/mock-library-api";
 import { useTransactionOtp } from "@/hooks/useTransactionOtp";
-import { TabAssetData, EmptyStateRow, SubmitBar, OtpVerificationDialog } from "./TransactionTabs";
+import { TabAssetData, EmptyStateRow, SubmitBar, OtpVerificationDialog, TransactionRemarkInput } from "./TransactionTabs";
 
 export const RenewTab = ({
   queuedRenewAssets,
@@ -25,6 +25,8 @@ export const RenewTab = ({
   setSavedDocName,
   otpVerified,
   setOtpVerified,
+  remark,
+  setRemark,
 }: {
   queuedRenewAssets: TabAssetData[];
   setQueuedRenewAssets: React.Dispatch<React.SetStateAction<TabAssetData[]>>;
@@ -38,6 +40,8 @@ export const RenewTab = ({
   setSavedDocName?: (name: string) => void;
   otpVerified?: boolean;
   setOtpVerified?: (verified: boolean) => void;
+  remark?: string;
+  setRemark?: (remark: string) => void;
 }) => {
   const submitDisabled = queuedRenewAssets.length === 0 || !member || renewMutation.isPending || hasDueCharges;
   const [totalDueCharges, setTotalDueCharges] = useState(0);
@@ -224,6 +228,7 @@ export const RenewTab = ({
           <label htmlFor="createInvoiceCheckbox" className="text-sm font-medium">Create Invoice</label>
         </div>
       </div>
+      <TransactionRemarkInput remark={remark} setRemark={setRemark} id="renew-remark" />
       <SubmitBar
         disabled={submitDisabled}
         loading={renewMutation.isPending}

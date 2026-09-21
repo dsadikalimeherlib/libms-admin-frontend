@@ -117,7 +117,8 @@ export const submitBookTransaction = async ({
     action = "Submit",
     savedDocName,
     otp,
-    otp_verified
+    otp_verified,
+    remark
 }: {
     transaction_type: "Issue" | "Return";
     member: any;
@@ -130,6 +131,7 @@ export const submitBookTransaction = async ({
     savedDocName?: string;
     otp?: string;
     otp_verified?: number;
+    remark?: string;
 }) => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error("You're logged out. Please log-in to continue");
@@ -156,6 +158,9 @@ export const submitBookTransaction = async ({
             doc.otp = otp;
             doc.otp_verified = otp_verified;
         }
+        if (remark !== undefined) {
+            doc.remark = remark;
+        }
     } else {
         const today = formatDate(new Date().toISOString());
         const docName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
@@ -178,6 +183,7 @@ export const submitBookTransaction = async ({
                 scan_barcode: barcode,
                 create_invoice: 0,
                 total_due_charges: 0,
+                remark: remark || "",
                 book_transaction_detail: (queuedBooks || []).map((book: any, idx: number) => ({
                     docstatus: 0,
                     doctype: "Book Transaction Detail",
@@ -214,6 +220,7 @@ export const submitBookTransaction = async ({
                 scan_barcode: "",
                 create_invoice: createInvoice,
                 total_due_charges: totalDueCharges,
+                remark: remark || "",
                 book_transaction_detail: [],
                 renew_book_details: [],
                 return_book_details: (queuedAssets || []).map((asset: any, idx: number) => {
@@ -271,6 +278,7 @@ export const submitBookRenew = async ({
     savedDocName,
     otp,
     otp_verified = 0,
+    remark
 }: {
     member: any;
     queuedRenewAssets: AssetByBarcodeMessage[];
@@ -280,6 +288,7 @@ export const submitBookRenew = async ({
     savedDocName?: string;
     otp?: string;
     otp_verified?: number;
+    remark?: string;
 }) => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error("You're logged out. Please log-in to continue");
@@ -311,6 +320,9 @@ export const submitBookRenew = async ({
             doc.otp = otp;
             doc.otp_verified = otp_verified;
         }
+        if (remark !== undefined) {
+            doc.remark = remark;
+        }
     } else {
         const today = formatDate(new Date().toISOString());
         const renewDueDate = formatDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString());
@@ -332,6 +344,7 @@ export const submitBookRenew = async ({
             scan_barcode: "",
             create_invoice: createInvoice,
             total_due_charges: totalDueCharges,
+            remark: remark || "",
             book_transaction_detail: [],
             return_book_details: [],
             renew_book_details: queuedRenewAssets.map((asset, idx) => {

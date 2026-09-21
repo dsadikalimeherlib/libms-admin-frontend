@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { formatDisplayDate, Member } from "@/lib/mock-library-api";
-import { TabAssetData, EmptyStateRow, SubmitBar, OtpVerificationDialog } from "./TransactionTabs";
+import { TabAssetData, EmptyStateRow, SubmitBar, OtpVerificationDialog, TransactionRemarkInput } from "./TransactionTabs";
 import { submitBookTransaction, generateOTP, getBookTransaction } from "@/services/books";
 import { toast } from "react-toastify";
 import { useTransactionOtp } from "@/hooks/useTransactionOtp";
@@ -28,6 +28,8 @@ export const ReturnTab = ({
   hasDueCharges,
   returnDate,
   setReturnDate,
+  remark,
+  setRemark,
 }: {
   queuedAssets: any[]; // AssetByBarcodeMessage[]
   loading?: boolean;
@@ -42,6 +44,8 @@ export const ReturnTab = ({
   hasDueCharges?: boolean;
   returnDate: string;
   setReturnDate: (date: string) => void;
+  remark?: string;
+  setRemark?: (remark: string) => void;
 }) => {
   const md = queuedAssets.length > 0 ? queuedAssets[queuedAssets.length - 1]?.member_details : null;
   const submitDisabled = queuedAssets.length === 0 || !md || !member || returnMutation.isPending || hasDueCharges;
@@ -195,6 +199,7 @@ export const ReturnTab = ({
           <label htmlFor="createInvoiceCheckbox" className="text-sm font-medium">Create Invoice</label>
         </div>
       </div>
+      <TransactionRemarkInput remark={remark} setRemark={setRemark} id="return-remark" />
       <SubmitBar
         disabled={submitDisabled}
         loading={returnMutation.isPending}

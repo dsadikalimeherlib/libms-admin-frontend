@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { UseFormReturn } from "react-hook-form";
 import type { IssuePreviewRow, Member } from "@/lib/mock-library-api";
-import { IssueFormValues, TabAssetData, SubmitBar, OtpVerificationDialog } from "./TransactionTabs";
+import { IssueFormValues, TabAssetData, SubmitBar, OtpVerificationDialog, TransactionRemarkInput } from "./TransactionTabs";
 import { Button } from "@/components/ui/button";
 import { submitBookTransaction, generateOTP, getBookTransaction } from "@/services/books";
 import { toast } from "react-toastify";
@@ -33,6 +33,8 @@ export interface IssueTabProps {
   setOtpVerified?: (verified: boolean) => void;
   hasDueCharges?: boolean;
   maxIssueDays?: number;
+  remark?: string;
+  setRemark?: (remark: string) => void;
 }
 
 const RootError = ({ message }: { message?: string }) =>
@@ -64,6 +66,8 @@ export const IssueTab = ({
   setOtpVerified,
   hasDueCharges,
   maxIssueDays,
+  remark,
+  setRemark,
 }: IssueTabProps) => {
   const {
     verifying,
@@ -268,6 +272,8 @@ export const IssueTab = ({
 
         </div>
       </section>
+
+      <TransactionRemarkInput remark={remark} setRemark={setRemark} id="issue-remark" />
 
       <SubmitBar
         error={error}
