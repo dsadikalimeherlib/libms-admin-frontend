@@ -28,7 +28,7 @@ export const validateMembers = async ({
     const token = localStorage.getItem('token');
 
     if (!token) {
-        console.error('No token found');
+        console.error("You're logged out. Please log-in to continue");
         return;
     }
 
@@ -84,7 +84,7 @@ export const validateMemberTransaction = async ({ text = '' }: { text: string })
     const token = localStorage.getItem('token');
 
     if (!token) {
-        console.error('No token found');
+        console.error("You're logged out. Please log-in to continue");
         return;
     }
 
@@ -121,7 +121,7 @@ export const getMemberImage = async ({ docname }: { docname: string }) => {
     const token = localStorage.getItem('token');
 
     if (!token) {
-        console.error('No token found');
+        console.error("You're logged out. Please log-in to continue");
         return;
     }
 
@@ -155,7 +155,7 @@ export const getMemberCustomer = async ({ docname }: { docname: string }) => {
     const token = localStorage.getItem('token');
 
     if (!token) {
-        console.error('No token found');
+        console.error("You're logged out. Please log-in to continue");
         return;
     }
 
@@ -189,7 +189,7 @@ export const validateUserRoles = async () => {
     const token = localStorage.getItem('token');
 
     if (!token) {
-        console.error('No token found');
+        console.error("You're logged out. Please log-in to continue");
         return;
     }
 
@@ -223,7 +223,7 @@ export const getMemberList = async ({ docname, generateBill = true }: { docname:
     const token = localStorage.getItem('token');
 
     if (!token) {
-        console.error('No token found');
+        console.error("You're logged out. Please log-in to continue");
         return;
     }
 
@@ -275,7 +275,7 @@ export const get_payment_entry = async ({ dt, dn }: { dt: string, dn: string }) 
     const token = localStorage.getItem('token');
 
     if (!token) {
-        console.error('No token found');
+        console.error("You're logged out. Please log-in to continue");
         return;
     }
 
@@ -318,7 +318,7 @@ export const getClientInsert = async ({ doc }: { doc: any }) => {
     const token = localStorage.getItem('token');
 
     if (!token) {
-        console.error('No token found');
+        console.error("You're logged out. Please log-in to continue");
         return;
     }
 

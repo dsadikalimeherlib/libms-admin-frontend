@@ -70,27 +70,30 @@ export const RenewTab = ({
     if (queuedRenewAssets.length === 0) {
       setReturnDate(format(new Date(), "yyyy-MM-dd"));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queuedRenewAssets]);
 
   useEffect(() => {
     if (queuedRenewAssets.length > 0 && setQueuedRenewAssets && returnDate) {
-      setQueuedRenewAssets((prev) => prev.map((asset) => {
-        let newDueDateStr = format(addDays(new Date(returnDate), maxIssueDays || 30), 'yyyy-MM-dd');
-        if (member?.due_date) {
-          const memberDueDate = new Date(member.due_date);
-          if (new Date(newDueDateStr) > memberDueDate) {
-            newDueDateStr = format(memberDueDate, 'yyyy-MM-dd');
+      setQueuedRenewAssets((prev) => {
+        let changed = false;
+        const next = prev.map((asset) => {
+          let newDueDateStr = format(addDays(new Date(returnDate), maxIssueDays || 30), 'yyyy-MM-dd');
+          if (member?.due_date) {
+            const memberDueDate = new Date(member.due_date);
+            if (new Date(newDueDateStr) > memberDueDate) {
+              newDueDateStr = format(memberDueDate, 'yyyy-MM-dd');
+            }
           }
-        }
-        if (asset.dueDate !== newDueDateStr) {
-          return { ...asset, dueDate: newDueDateStr };
-        }
-        return asset;
-      }));
+          if (asset.dueDate !== newDueDateStr) {
+            changed = true;
+            return { ...asset, dueDate: newDueDateStr };
+          }
+          return asset;
+        });
+        return changed ? next : prev;
+      });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [member?.name, maxIssueDays, returnDate]); // removed asset dependency because it updates all
+  }, [member?.due_date, maxIssueDays, returnDate, queuedRenewAssets.length, setQueuedRenewAssets]);
 
   return (
     <div className="space-y-6">
@@ -178,6 +181,7 @@ export const RenewTab = ({
                       <TableCell className="font-medium text-foreground">{asset.asset_name}</TableCell>
                       <TableCell>{md?.transaction_date ? formatDisplayDate(md.transaction_date) : "--"}</TableCell>
                       <TableCell>{md?.due_date ? formatDisplayDate(md.due_date) : "--"}</TableCell>
+
                       <TableCell>{formatDisplayDate(returnDate)}</TableCell>
                       <TableCell>{asset.dueDate ? format(new Date(asset.dueDate), 'dd/MM/yyyy') : "—"}</TableCell>
                       <TableCell>{asset.total_due_charges ?? 0}</TableCell>

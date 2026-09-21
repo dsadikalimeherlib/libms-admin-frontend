@@ -69,7 +69,7 @@ export const getBookTransactionDetails = async ({
 }): Promise<Book> => {
     const token = localStorage.getItem('token');
     if (!token) {
-        throw new Error('No token found');
+        throw new Error("You're logged out. Please log-in to continue");
     }
 
     const { access_token } = JSON.parse(token);
@@ -132,7 +132,7 @@ export const submitBookTransaction = async ({
     otp_verified?: number;
 }) => {
     const token = localStorage.getItem('token');
-    if (!token) throw new Error('No token found');
+    if (!token) throw new Error("You're logged out. Please log-in to continue");
     const { access_token } = JSON.parse(token);
 
     let doc: any;
@@ -282,7 +282,7 @@ export const submitBookRenew = async ({
     otp_verified?: number;
 }) => {
     const token = localStorage.getItem('token');
-    if (!token) throw new Error('No token found');
+    if (!token) throw new Error("You're logged out. Please log-in to continue");
     const { access_token } = JSON.parse(token);
 
     const formatDate = (isoString: string) => {
@@ -292,12 +292,16 @@ export const submitBookRenew = async ({
 
     let doc: any;
     if (savedDocName) {
-        const getRes = await fetch(`${process.env.NEXT_PUBLIC_FRAPPE_URL}/api/resource/Book%20Transaction/${savedDocName}`, {
-            headers: {
-                "Authorization": `Bearer ${access_token}`,
-                "Content-Type": "application/json",
-            },
-        });
+        const getRes = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.get?doctype=Book+Transaction&name=${savedDocName}`,
+            {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${access_token}`,
+                    Accept: "application/json",
+                },
+            }
+        );
         const getData = await getRes.json();
         if (!getRes.ok) {
             throw new Error(getData.error || "Failed to fetch existing transaction");
@@ -396,7 +400,7 @@ export const getAssetByBarcode = async ({
     total_due_charges?: number;
 }): Promise<AssetByBarcodeMessage> => {
     const token = localStorage.getItem('token');
-    if (!token) throw new Error("No token found");
+    if (!token) throw new Error("You're logged out. Please log-in to continue");
     const { access_token } = JSON.parse(token);
 
     const tempName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
@@ -498,7 +502,7 @@ export const validateMemberToIssueBook = async ({
     member: string;
 }) => {
     const token = localStorage.getItem('token');
-    if (!token) throw new Error("No token found");
+    if (!token) throw new Error("You're logged out. Please log-in to continue");
     const { access_token } = JSON.parse(token);
 
     const body = new URLSearchParams({
@@ -530,7 +534,7 @@ export const generateOTP = async ({
     docname: string;
 }) => {
     const token = localStorage.getItem('token');
-    if (!token) throw new Error('No token found');
+    if (!token) throw new Error("You're logged out. Please log-in to continue");
     const { access_token } = JSON.parse(token);
 
     const body = new URLSearchParams({ docname });
@@ -563,7 +567,7 @@ export const getBookTransaction = async ({
     docname: string;
 }) => {
     const token = localStorage.getItem('token');
-    if (!token) throw new Error('No token found');
+    if (!token) throw new Error("You're logged out. Please log-in to continue");
     const { access_token } = JSON.parse(token);
 
     const res = await fetch(
@@ -594,7 +598,7 @@ export const countBooksIssued = async ({
     member: string;
 }) => {
     const token = localStorage.getItem('token');
-    if (!token) throw new Error('No token found');
+    if (!token) throw new Error("You're logged out. Please log-in to continue");
     const { access_token } = JSON.parse(token);
 
     const body = new URLSearchParams({
@@ -644,7 +648,7 @@ export const searchFrappeLink = async ({
     filters?: Record<string, any>;
 }): Promise<{ message: SearchLinkResult[] }> => {
     const token = localStorage.getItem('token');
-    if (!token) throw new Error('No token found');
+    if (!token) throw new Error("You're logged out. Please log-in to continue");
     const { access_token } = JSON.parse(token);
 
     const body: Record<string, string> = {
@@ -702,7 +706,7 @@ export const selectBook = async ({
     limit?: number;
 }): Promise<{ message: SelectBookResult[] }> => {
     const token = localStorage.getItem('token');
-    if (!token) throw new Error('No token found');
+    if (!token) throw new Error("You're logged out. Please log-in to continue");
     const { access_token } = JSON.parse(token);
 
     const queryParams = new URLSearchParams({
@@ -749,7 +753,7 @@ export const submitBookReservation = async ({
     issuedCount?: number;
 }) => {
     const token = localStorage.getItem('token');
-    if (!token) throw new Error('No token found');
+    if (!token) throw new Error("You're logged out. Please log-in to continue");
     let access_token = "";
     let owner = "test_user@gmail.com";
     try {
@@ -808,7 +812,7 @@ export const get_requested_book_reservations = async ({
     self_name: string;
 }) => {
     const token = localStorage.getItem('token');
-    if (!token) throw new Error('No token found');
+    if (!token) throw new Error("You're logged out. Please log-in to continue");
     const { access_token } = JSON.parse(token);
 
     const body = new URLSearchParams({ self_name });
@@ -847,7 +851,7 @@ export const getAssetList = async ({
     order_by?: string;
 }) => {
     const token = localStorage.getItem('token');
-    if (!token) throw new Error('No token found');
+    if (!token) throw new Error("You're logged out. Please log-in to continue");
     const { access_token } = JSON.parse(token);
 
     const body = new URLSearchParams({
