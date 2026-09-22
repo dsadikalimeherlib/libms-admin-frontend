@@ -14,6 +14,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 
 import { useTransactionOtp } from "@/hooks/useTransactionOtp";
+import { OverdueBooks } from "./OverdueBooks";
 
 export interface IssueTabProps {
   form: UseFormReturn<IssueFormValues>;
@@ -161,61 +162,68 @@ export const IssueTab = ({
   return (
     <div className="space-y-6">
       <section className="space-y-4">
+        <div className="flex gap-6">
+          <div className="section-frame  w-full flex-1 !p-0">
+            <div className="p-5 flex gap-3">
+              <div>
+                <p className="section-heading">Issue Date</p>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "mt-1 w-auto justify-start text-left font-normal",
+                        !(assetData?.transactionDate || queuedBooks[0]?.transactionDate) && "text-muted-foreground"
+                      )}
+                      disabled={!member || queuedBooks.length === 0}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {(assetData?.transactionDate || queuedBooks[0]?.transactionDate) ? (
+                        format(new Date(assetData?.transactionDate || queuedBooks[0]?.transactionDate as string), "dd/MM/yyyy")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={(assetData?.transactionDate || queuedBooks[0]?.transactionDate) ? new Date(assetData?.transactionDate || queuedBooks[0]?.transactionDate as string) : undefined}
+                      onSelect={(date) => {
+                        if (!date) return;
+                        const newDateStr = format(date, 'yyyy-MM-dd');
+                        const fakeEvent = {
+                          target: { value: newDateStr }
+                        } as React.ChangeEvent<HTMLInputElement>;
+                        handleDateChange(fakeEvent);
+                      }}
+                      initialFocus
+                      disabled={(date) => {
+                        const minDate = new Date();
+                        minDate.setHours(0, 0, 0, 0);
+                        const d = new Date(date);
+                        d.setHours(0, 0, 0, 0);
+                        if (d < minDate) return true;
+                        if (member?.due_date) {
+                          const maxDate = new Date(member.due_date);
+                          maxDate.setHours(0, 0, 0, 0);
+                          if (d > maxDate) return true;
+                        }
+                        return false;
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-        <div className="section-frame flex gap-3 ">
-          <div>
-            <p className="section-heading">Issue Date</p>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "mt-1 w-auto justify-start text-left font-normal",
-                    !(assetData?.transactionDate || queuedBooks[0]?.transactionDate) && "text-muted-foreground"
-                  )}
-                  disabled={!member || queuedBooks.length === 0}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {(assetData?.transactionDate || queuedBooks[0]?.transactionDate) ? (
-                    format(new Date(assetData?.transactionDate || queuedBooks[0]?.transactionDate as string), "dd/MM/yyyy")
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={(assetData?.transactionDate || queuedBooks[0]?.transactionDate) ? new Date(assetData?.transactionDate || queuedBooks[0]?.transactionDate as string) : undefined}
-                  onSelect={(date) => {
-                    if (!date) return;
-                    const newDateStr = format(date, 'yyyy-MM-dd');
-                    const fakeEvent = {
-                      target: { value: newDateStr }
-                    } as React.ChangeEvent<HTMLInputElement>;
-                    handleDateChange(fakeEvent);
-                  }}
-                  initialFocus
-                  disabled={(date) => {
-                    const minDate = new Date();
-                    minDate.setHours(0, 0, 0, 0);
-                    const d = new Date(date);
-                    d.setHours(0, 0, 0, 0);
-                    if (d < minDate) return true;
-                    if (member?.due_date) {
-                      const maxDate = new Date(member.due_date);
-                      maxDate.setHours(0, 0, 0, 0);
-                      if (d > maxDate) return true;
-                    }
-                    return false;
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
+              <div>
+                <p className="section-heading">Due Date</p>
+                {assetData?.dueDate || queuedBooks[0]?.dueDate ? <p className="mt-1 text-sm text-foreground">{format(new Date(assetData?.dueDate || queuedBooks[0]?.dueDate), 'dd/MM/yyyy')}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+              </div>
+            </div>
           </div>
-          <div>
-            <p className="section-heading">Due Date</p>
-            {assetData?.dueDate || queuedBooks[0]?.dueDate ? <p className="mt-1 text-sm text-foreground">{format(new Date(assetData?.dueDate || queuedBooks[0]?.dueDate), 'dd/MM/yyyy')}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+          <div className="flex-1">
+            <OverdueBooks memberId={member?.name} />
           </div>
         </div>
         <div className="table-shell">

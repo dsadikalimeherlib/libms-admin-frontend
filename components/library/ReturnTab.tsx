@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { formatDisplayDate, Member } from "@/lib/mock-library-api";
 import { TabAssetData, EmptyStateRow, SubmitBar, OtpVerificationDialog, TransactionRemarkInput } from "./TransactionTabs";
+import { OverdueBooks } from "./OverdueBooks";
 import { submitBookTransaction, generateOTP, getBookTransaction } from "@/services/books";
 import { toast } from "react-toastify";
 import { useTransactionOtp } from "@/hooks/useTransactionOtp";
@@ -80,56 +81,60 @@ export const ReturnTab = ({
   return (
     <div className="space-y-6">
       <section className="space-y-4">
+        <div className="flex gap-6">
+          <div className="section-frame w-full flex-1 !p-0">
+            <div className="p-5 flex gap-3">
+              <div>
+                <p className="section-heading">Issue Date</p>
+                {md?.transaction_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(md.transaction_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+              </div>
+              <div>
+                <p className="section-heading">Return Date</p>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="returnDateInput"
+                      variant={"outline"}
+                      className={cn(
+                        "mt-1 w-auto justify-start text-left font-normal",
+                        !returnDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {returnDate ? (
+                        format(new Date(returnDate), "dd/MM/yyyy")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={returnDate ? new Date(returnDate) : undefined}
+                      onSelect={(date) => {
+                        if (!date) return;
+                        setReturnDate(format(date, "yyyy-MM-dd"));
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div>
+                <p className="section-heading">Due Date</p>
+                {md?.due_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(md.due_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+              </div>
+            </div>
+          </div>
+          <div className="flex-1">
+            <OverdueBooks memberId={member?.name} />
+          </div>
+        </div>
         <div>
           <p className="section-heading">Return transaction</p>
           <p className="mt-1 text-sm text-muted-foreground">Review queued books before returning.</p>
         </div>
-
-        {queuedAssets.length > 0 && (
-          <div className="section-frame flex gap-3 ">
-            <div>
-              <p className="section-heading">Issue Date</p>
-              {md?.transaction_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(md.transaction_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
-            </div>
-            <div>
-              <p className="section-heading">Return Date</p>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="returnDateInput"
-                    variant={"outline"}
-                    className={cn(
-                      "mt-1 w-auto justify-start text-left font-normal",
-                      !returnDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {returnDate ? (
-                      format(new Date(returnDate), "dd/MM/yyyy")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={returnDate ? new Date(returnDate) : undefined}
-                    onSelect={(date) => {
-                      if (!date) return;
-                      setReturnDate(format(date, "yyyy-MM-dd"));
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div>
-              <p className="section-heading">Due Date</p>
-              {md?.due_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(md.due_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
-            </div>
-          </div>
-        )}
 
         <div className="table-shell">
           <Table>

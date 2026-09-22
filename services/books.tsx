@@ -905,3 +905,35 @@ export const getAssetList = async ({
 
     return data;
 };
+
+export const getMemberDueHistory = async ({
+    member
+}: {
+    member: string;
+}) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("You're logged out. Please log-in to continue");
+    const { access_token } = JSON.parse(token);
+
+    const params = new URLSearchParams();
+    params.append('member', member);
+
+    const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/method/library_management.custom_api.get_member_due_history`,
+        {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+                Accept: 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: params.toString()
+        }
+    );
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || data.error || 'Failed to fetch member due history');
+
+    return data;
+};

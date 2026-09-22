@@ -40,7 +40,7 @@ export const MemberDetails = ({ member, issuedCount, maxIssueLimit }: { member: 
           </div>
         )}
 
-        <div className=" grid gap-3 md:grid-cols-2">
+        <div className=" grid gap-3 md:grid-cols-2 w-full">
           <div>
             <p className="section-heading">Member ID</p>
             <p className="text-sm text-foreground">{member.name}</p>
@@ -448,7 +448,7 @@ export const TransactionForm = ({
                 </Button>
               ) : null}
             </div> */}
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+            <div className="grid gap-y-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start ">
               <FormField
                 control={form.control}
                 name="memberQuery"

@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { formatDisplayDate, type Member } from "@/lib/mock-library-api";
 import { useTransactionOtp } from "@/hooks/useTransactionOtp";
 import { TabAssetData, EmptyStateRow, SubmitBar, OtpVerificationDialog, TransactionRemarkInput } from "./TransactionTabs";
+import { OverdueBooks } from "./OverdueBooks";
 
 export const RenewTab = ({
   queuedRenewAssets,
@@ -102,51 +103,58 @@ export const RenewTab = ({
   return (
     <div className="space-y-6">
       <section className="space-y-4">
-        <div className="section-frame flex gap-3 ">
-          <div>
-            <p className="section-heading">Issue Date</p>
-            {queuedRenewAssets.length > 0 && queuedRenewAssets[0].member_details?.transaction_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(queuedRenewAssets[0].member_details.transaction_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+        <div className="flex gap-6">
+          <div className="section-frame w-full flex-1 !p-0">
+            <div className="p-5 flex gap-3">
+              <div>
+                <p className="section-heading">Issue Date</p>
+                {queuedRenewAssets.length > 0 && queuedRenewAssets[0].member_details?.transaction_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(queuedRenewAssets[0].member_details.transaction_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+              </div>
+              <div>
+                <p className="section-heading">Return Date</p>
+                {queuedRenewAssets.length > 0 ? (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="renewDateInput"
+                        variant={"outline"}
+                        className={cn(
+                          "mt-1 w-auto justify-start text-left font-normal",
+                          !returnDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {returnDate ? (
+                          format(new Date(returnDate), "dd/MM/yyyy")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={returnDate ? new Date(returnDate) : undefined}
+                        onSelect={(date) => {
+                          if (!date) return;
+                          setReturnDate(format(date, "yyyy-MM-dd"));
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                ) : (
+                  <p className="mt-1 text-sm text-foreground">--</p>
+                )}
+              </div>
+              <div>
+                <p className="section-heading">Due Date</p>
+                {queuedRenewAssets.length > 0 && queuedRenewAssets[0].member_details?.due_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(queuedRenewAssets[0].member_details.due_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+              </div>
+            </div>
           </div>
-          <div>
-            <p className="section-heading">Return Date</p>
-            {queuedRenewAssets.length > 0 ? (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="renewDateInput"
-                    variant={"outline"}
-                    className={cn(
-                      "mt-1 w-auto justify-start text-left font-normal",
-                      !returnDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {returnDate ? (
-                      format(new Date(returnDate), "dd/MM/yyyy")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={returnDate ? new Date(returnDate) : undefined}
-                    onSelect={(date) => {
-                      if (!date) return;
-                      setReturnDate(format(date, "yyyy-MM-dd"));
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            ) : (
-              <p className="mt-1 text-sm text-foreground">--</p>
-            )}
-          </div>
-          <div>
-            <p className="section-heading">Due Date</p>
-            {queuedRenewAssets.length > 0 && queuedRenewAssets[0].member_details?.due_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(queuedRenewAssets[0].member_details.due_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+          <div className="flex-1">
+            <OverdueBooks memberId={member?.name} />
           </div>
         </div>
         <div>
