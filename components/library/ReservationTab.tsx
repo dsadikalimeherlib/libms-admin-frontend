@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pencil, Settings, Loader2 } from "lucide-react";
 import type { SelectBookResult } from "@/services/books";
 import { toast } from "react-toastify";
+import { OverdueBooks } from "./OverdueBooks";
 
 export const ReservationTab = ({
   reservedAssets = [],
@@ -14,7 +15,8 @@ export const ReservationTab = ({
   onSubmit,
   loading,
   submitDisabled,
-  onIssueAvailableBook
+  onIssueAvailableBook,
+  member
 }: {
   reservedAssets?: SelectBookResult[];
   reservationDate?: string;
@@ -25,12 +27,14 @@ export const ReservationTab = ({
   loading?: boolean;
   submitDisabled?: boolean;
   onIssueAvailableBook?: (barcode: string) => void;
+  member?: any; // Add member prop type
 }) => {
   return (
     <div className="space-y-8 p-1 pt-4">
       {/* Top Section */}
-
-
+      <div className="flex-1">
+        <OverdueBooks memberId={member?.name} />
+      </div>
       <div className="border-t border-border my-6"></div>
 
       {/* Middle Section */}

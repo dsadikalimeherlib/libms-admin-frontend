@@ -835,6 +835,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
           loading={reservationMutation.isPending}
           submitDisabled={!member || reservedAssets.length === 0}
           onIssueAvailableBook={handleIssueAvailableBook}
+          member={member}
         />
       </div>
     </div>
