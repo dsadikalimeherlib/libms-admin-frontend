@@ -42,16 +42,14 @@ const Dashboard = () => {
                             {isPaying ? "Processing..." : "Pay now"}
                         </Button>
                     </div>}
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
 
-                    </div>
-                    <Card className="panel-surface border-border/70 pt-6">
+                    <div className=" p-0 mt-6">
 
-                        <CardContent>
+                        <CardContent className="p-0">
 
                             <TransactionTabs setDueMessage={setDueMessage} setDuePaymentId={setDuePaymentId} />
                         </CardContent>
-                    </Card>
+                    </div>
 
                 </div>
             </main>

@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 
 import { useTransactionOtp } from "@/hooks/useTransactionOtp";
 import { OverdueBooks } from "./OverdueBooks";
+import { Card, CardContent } from "../ui/card";
 
 export interface IssueTabProps {
   form: UseFormReturn<IssueFormValues>;
@@ -163,122 +164,130 @@ export const IssueTab = ({
     <div className="space-y-6">
       <section className="space-y-4">
         <div className="flex gap-6">
-          <div className="section-frame  w-full flex-1 !p-0">
-            <div className="p-5 flex gap-3">
-              <div>
-                <p className="section-heading">Issue Date</p>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "mt-1 w-auto justify-start text-left font-normal",
-                        !(assetData?.transactionDate || queuedBooks[0]?.transactionDate) && "text-muted-foreground"
-                      )}
-                      disabled={!member || queuedBooks.length === 0}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {(assetData?.transactionDate || queuedBooks[0]?.transactionDate) ? (
-                        format(new Date(assetData?.transactionDate || queuedBooks[0]?.transactionDate as string), "dd/MM/yyyy")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={(assetData?.transactionDate || queuedBooks[0]?.transactionDate) ? new Date(assetData?.transactionDate || queuedBooks[0]?.transactionDate as string) : undefined}
-                      onSelect={(date) => {
-                        if (!date) return;
-                        const newDateStr = format(date, 'yyyy-MM-dd');
-                        const fakeEvent = {
-                          target: { value: newDateStr }
-                        } as React.ChangeEvent<HTMLInputElement>;
-                        handleDateChange(fakeEvent);
-                      }}
-                      initialFocus
-                      disabled={(date) => {
-                        const minDate = new Date();
-                        minDate.setHours(0, 0, 0, 0);
-                        const d = new Date(date);
-                        d.setHours(0, 0, 0, 0);
-                        if (d < minDate) return true;
-                        if (member?.due_date) {
-                          const maxDate = new Date(member.due_date);
-                          maxDate.setHours(0, 0, 0, 0);
-                          if (d > maxDate) return true;
-                        }
-                        return false;
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+          <Card className="panel-surface border-border/70 p-0 flex-1">
+            <CardContent className="py-3 px-4 pb-4">
+              <div className="  w-full flex-1 !p-0">
+                <div className="p-5 flex gap-3">
+                  <div>
+                    <p className="section-heading">Issue Date</p>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "mt-1 w-auto justify-start text-left font-normal",
+                            !(assetData?.transactionDate || queuedBooks[0]?.transactionDate) && "text-muted-foreground"
+                          )}
+                          disabled={!member || queuedBooks.length === 0}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {(assetData?.transactionDate || queuedBooks[0]?.transactionDate) ? (
+                            format(new Date(assetData?.transactionDate || queuedBooks[0]?.transactionDate as string), "dd/MM/yyyy")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={(assetData?.transactionDate || queuedBooks[0]?.transactionDate) ? new Date(assetData?.transactionDate || queuedBooks[0]?.transactionDate as string) : undefined}
+                          onSelect={(date) => {
+                            if (!date) return;
+                            const newDateStr = format(date, 'yyyy-MM-dd');
+                            const fakeEvent = {
+                              target: { value: newDateStr }
+                            } as React.ChangeEvent<HTMLInputElement>;
+                            handleDateChange(fakeEvent);
+                          }}
+                          initialFocus
+                          disabled={(date) => {
+                            const minDate = new Date();
+                            minDate.setHours(0, 0, 0, 0);
+                            const d = new Date(date);
+                            d.setHours(0, 0, 0, 0);
+                            if (d < minDate) return true;
+                            if (member?.due_date) {
+                              const maxDate = new Date(member.due_date);
+                              maxDate.setHours(0, 0, 0, 0);
+                              if (d > maxDate) return true;
+                            }
+                            return false;
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
 
-              <div>
-                <p className="section-heading">Due Date</p>
-                {assetData?.dueDate || queuedBooks[0]?.dueDate ? <p className="mt-1 text-sm text-foreground">{format(new Date(assetData?.dueDate || queuedBooks[0]?.dueDate), 'dd/MM/yyyy')}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+                  <div>
+                    <p className="section-heading">Due Date</p>
+                    {assetData?.dueDate || queuedBooks[0]?.dueDate ? <p className="mt-1 text-sm text-foreground">{format(new Date(assetData?.dueDate || queuedBooks[0]?.dueDate), 'dd/MM/yyyy')}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
           <div className="flex-1">
             <OverdueBooks memberId={member?.name} />
           </div>
         </div>
-        <div className="table-shell">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>No.</TableHead>
-                <TableHead>Access No</TableHead>
-                <TableHead>Book Title</TableHead>
-                <TableHead>Authors</TableHead>
-                <TableHead>Language</TableHead>
-                <TableHead>Volume</TableHead>
-                <TableHead>Issue Date</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
-                    <Loader2 className="mx-auto animate-spin" />
-                  </TableCell>
-                </TableRow>
-              ) : queuedBooks.length > 0 ? (
-                queuedBooks.map((book, idx) => (
-                  <TableRow key={book.barcode}>
-                    <TableCell>{idx + 1}</TableCell>
-                    <TableCell>{book.accessNo || book.barcode}</TableCell>
-                    <TableCell className="font-medium text-foreground">{book.title}</TableCell>
-                    <TableCell>{book.author || "—"}</TableCell>
-                    <TableCell>{book.language || "—"}</TableCell>
-                    <TableCell>{book.volume || "—"}</TableCell>
-                    <TableCell>{book.transactionDate ? format(new Date(book.transactionDate), 'dd-MM-yyyy') : "—"}</TableCell>
-                    <TableCell>{book.dueDate ? format(new Date(book.dueDate), 'dd-MM-yyyy') : "—"}</TableCell>
-                    <TableCell>
-                      <button
-                        type="button"
-                        className="text-sm font-medium text-destructive hover:underline"
-                        onClick={() => setQueuedBooks && setQueuedBooks(queuedBooks.filter(b => b.barcode !== book.barcode))}
-                      >
-                        Remove
-                      </button>
-                    </TableCell>
+        <Card className="panel-surface border-border/70 p-0 flex-1">
+          <CardContent className="py-3 px-4 pb-4">
+            <div className="table-shell1">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>No.</TableHead>
+                    <TableHead>Access No</TableHead>
+                    <TableHead>Book Title</TableHead>
+                    <TableHead>Authors</TableHead>
+                    <TableHead>Language</TableHead>
+                    <TableHead>Volume</TableHead>
+                    <TableHead>Issue Date</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead></TableHead>
                   </TableRow>
-                ))
-              ) : (
-                <EmptyStateRow message="Scan a barcode above and click Issue tab to load book details." colSpan={9} />
-              )}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
+                        <Loader2 className="mx-auto animate-spin" />
+                      </TableCell>
+                    </TableRow>
+                  ) : queuedBooks.length > 0 ? (
+                    queuedBooks.map((book, idx) => (
+                      <TableRow key={book.barcode}>
+                        <TableCell>{idx + 1}</TableCell>
+                        <TableCell>{book.accessNo || book.barcode}</TableCell>
+                        <TableCell className="font-medium text-foreground">{book.title}</TableCell>
+                        <TableCell>{book.author || "—"}</TableCell>
+                        <TableCell>{book.language || "—"}</TableCell>
+                        <TableCell>{book.volume || "—"}</TableCell>
+                        <TableCell>{book.transactionDate ? format(new Date(book.transactionDate), 'dd-MM-yyyy') : "—"}</TableCell>
+                        <TableCell>{book.dueDate ? format(new Date(book.dueDate), 'dd-MM-yyyy') : "—"}</TableCell>
+                        <TableCell>
+                          <button
+                            type="button"
+                            className="text-sm font-medium text-destructive hover:underline"
+                            onClick={() => setQueuedBooks && setQueuedBooks(queuedBooks.filter(b => b.barcode !== book.barcode))}
+                          >
+                            Remove
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <EmptyStateRow message="Scan a barcode above and click Issue tab to load book details." colSpan={9} />
+                  )}
+                </TableBody>
+              </Table>
 
+            </div>
 
+          </CardContent>
+        </Card>
 
-        </div>
       </section>
 
       <TransactionRemarkInput remark={remark} setRemark={setRemark} id="issue-remark" />
@@ -308,7 +317,7 @@ export const IssueTab = ({
         onVerify={handleOtpVerify}
         onCancel={() => setOtpDialogOpen(false)}
       />
-    </div>
+    </div >
   );
 };
 

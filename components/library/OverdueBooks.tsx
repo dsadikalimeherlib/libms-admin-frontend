@@ -55,9 +55,9 @@ export const OverdueBooks = ({ memberId }: { memberId?: string }) => {
             {overdueBooks.length} Overdue
           </span>
         </div>
-        <Link href={`/admin/reports/overdue?member=${memberId}`} className="text-blue-500 hover:text-blue-600 text-sm font-medium flex items-center gap-1">
+        <a target="_blank" href={`https://libms-v16.aakvaerp.com/desk/query-report/Books%20Due?member=${memberId}`} className="text-blue-500 hover:text-blue-600 text-sm font-medium flex items-center gap-1">
           Report <ArrowRight className="w-4 h-4" />
-        </Link>
+        </a>
       </div>
 
       <div className="flex overflow-x-auto pb-2 gap-3 snap-x scrollbar-thin">

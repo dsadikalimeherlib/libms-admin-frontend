@@ -40,17 +40,21 @@ import { ReturnTab } from "./ReturnTab";
 import { RenewTab } from "./RenewTab";
 import { ReservationTab } from "./ReservationTab";
 import { TransactionForm } from "./TransactionForm";
+import { Card, CardContent } from "../ui/card";
 
-const issueFormSchema = z.object({
+const getIssueFormSchema = (activeTab: string) => z.object({
   memberQuery: z.string().trim(),
   barcode: z
     .string()
     .trim()
-    .min(4, "Enter a valid barcode.")
+    .min(4, activeTab === "reservation" ? "Enter valid book title" : "Enter a valid barcode.")
     .or(z.literal("")),
 });
 
-export type IssueFormValues = z.infer<typeof issueFormSchema>;
+export type IssueFormValues = {
+  memberQuery: string;
+  barcode: string;
+};
 
 const buildIssuePreview = (book: Book, member?: Member | null, maxIssueDays: number = 30): IssuePreviewRow => {
   const transactionDate = new Date();
@@ -99,15 +103,19 @@ export const EmptyStateRow = ({ message, colSpan }: { message: string; colSpan: 
 );
 
 export const TransactionRemarkInput = ({ remark, setRemark, id }: { remark?: string, setRemark?: (val: string) => void, id: string }) => (
-  <div className="flex flex-col gap-2 mt-4 mb-4">
-    <label htmlFor={id} className="text-sm font-medium">Remark</label>
-    <Input
-      id={id}
-      placeholder="Add a remark (optional)"
-      value={remark || ""}
-      onChange={(e) => setRemark && setRemark(e.target.value)}
-    />
-  </div>
+  <Card className="panel-surface border-border/70 p-0 ">
+    <CardContent className="py-3 px-4 pb-4">
+      <div className="flex flex-col gap-2">
+        <label htmlFor={id} className="text-sm font-medium">Remark</label>
+        <Input
+          id={id}
+          placeholder="Add a remark (optional)"
+          value={remark || ""}
+          onChange={(e) => setRemark && setRemark(e.target.value)}
+        />
+      </div>
+    </CardContent>
+  </Card>
 );
 
 
@@ -250,7 +258,7 @@ const tabs = [
   { value: "issue", label: "Issue" },
   { value: "return", label: "Return" },
   { value: "renew", label: "Renew" },
-  { value: "reservation", label: "Reservation" },
+  { value: "reservation", label: "Reserve Books" },
 ] as const;
 
 const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (msg: string | null) => void, setDuePaymentId?: (id: string | null) => void } = {}) => {
@@ -258,7 +266,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
 
   const queryClient = useQueryClient();
   const form = useForm<IssueFormValues>({
-    resolver: zodResolver(issueFormSchema),
+    resolver: (data, context, options) => zodResolver(getIssueFormSchema(activeTab))(data, context, options),
     defaultValues: {
       memberQuery: "",
       barcode: "",

@@ -11,6 +11,7 @@ import { getMemberImage, validateMemberTransaction } from "@/services/members";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { toast } from "react-toastify";
 import { searchFrappeLink, selectBook, type SearchLinkResult, type SelectBookResult, getAssetList } from "@/services/books";
+import { Card, CardContent } from "../ui/card";
 export const MemberDetails = ({ member, issuedCount, maxIssueLimit }: { member: Member, issuedCount: number, maxIssueLimit: number }) => {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
@@ -26,7 +27,7 @@ export const MemberDetails = ({ member, issuedCount, maxIssueLimit }: { member: 
   }, [member.name]);
 
   return (
-    <div className="section-frame grid gap-3 md:grid-cols-3">
+    <div className="section-frame1 grid gap-3 md:grid-cols-3">
       {/* Avatar + name block spanning all columns */}
       <div className="md:col-span-3 flex items-center gap-4">
 
@@ -81,61 +82,64 @@ export const MemberDetails = ({ member, issuedCount, maxIssueLimit }: { member: 
 };
 
 export const BookDetails = ({ book, asset }: { book: Book; asset?: AssetDoc | null }) => (
-  <div className="section-frame grid gap-3 md:grid-cols-2">
-    <div className="md:col-span-2">
-      <p className="section-heading">Book Title</p>
-      <p className="mt-1 text-base font-semibold text-foreground">{book.title}</p>
+  <div>
+
+    <div className=" grid gap-3 md:grid-cols-2">
+      <div className="md:col-span-2">
+        <p className="section-heading">Book Title</p>
+        <p className="mt-1 text-base font-semibold text-foreground">{book.title}</p>
+      </div>
+      <div>
+        <p className="section-heading">Asset ID</p>
+        <p className="mt-1 text-sm text-foreground">{book.barcode}</p>
+      </div>
+      {asset?.item_code ? (
+        <div>
+          <p className="section-heading">Item Code</p>
+          <p className="mt-1 text-sm text-foreground">{asset.item_code}</p>
+        </div>
+      ) : null}
+      {asset?.asset_category ? (
+        <div>
+          <p className="section-heading">Category</p>
+          <p className="mt-1 text-sm text-foreground">{asset.asset_category}</p>
+        </div>
+      ) : null}
+      <div>
+        <p className="section-heading">Location</p>
+        <p className="mt-1 text-sm text-foreground">{book.location}</p>
+      </div>
+      <div>
+        <p className="section-heading">Status</p>
+        <div className="mt-1">
+          <span className="data-chip">{book.status}</span>
+        </div>
+      </div>
+      {asset?.donated_book ? (
+        <div>
+          <p className="section-heading">Donated</p>
+          <p className="mt-1 text-sm text-foreground">{asset.donated_book}</p>
+        </div>
+      ) : null}
+      {book.author ? (
+        <div>
+          <p className="section-heading">Author</p>
+          <p className="mt-1 text-sm text-foreground">{book.author}</p>
+        </div>
+      ) : null}
+      {book.language ? (
+        <div>
+          <p className="section-heading">Language</p>
+          <p className="mt-1 text-sm text-foreground">{book.language}</p>
+        </div>
+      ) : null}
+      {book.volume ? (
+        <div>
+          <p className="section-heading">Volume</p>
+          <p className="mt-1 text-sm text-foreground">{book.volume}</p>
+        </div>
+      ) : null}
     </div>
-    <div>
-      <p className="section-heading">Asset ID</p>
-      <p className="mt-1 text-sm text-foreground">{book.barcode}</p>
-    </div>
-    {asset?.item_code ? (
-      <div>
-        <p className="section-heading">Item Code</p>
-        <p className="mt-1 text-sm text-foreground">{asset.item_code}</p>
-      </div>
-    ) : null}
-    {asset?.asset_category ? (
-      <div>
-        <p className="section-heading">Category</p>
-        <p className="mt-1 text-sm text-foreground">{asset.asset_category}</p>
-      </div>
-    ) : null}
-    <div>
-      <p className="section-heading">Location</p>
-      <p className="mt-1 text-sm text-foreground">{book.location}</p>
-    </div>
-    <div>
-      <p className="section-heading">Status</p>
-      <div className="mt-1">
-        <span className="data-chip">{book.status}</span>
-      </div>
-    </div>
-    {asset?.donated_book ? (
-      <div>
-        <p className="section-heading">Donated</p>
-        <p className="mt-1 text-sm text-foreground">{asset.donated_book}</p>
-      </div>
-    ) : null}
-    {book.author ? (
-      <div>
-        <p className="section-heading">Author</p>
-        <p className="mt-1 text-sm text-foreground">{book.author}</p>
-      </div>
-    ) : null}
-    {book.language ? (
-      <div>
-        <p className="section-heading">Language</p>
-        <p className="mt-1 text-sm text-foreground">{book.language}</p>
-      </div>
-    ) : null}
-    {book.volume ? (
-      <div>
-        <p className="section-heading">Volume</p>
-        <p className="mt-1 text-sm text-foreground">{book.volume}</p>
-      </div>
-    ) : null}
   </div>
 );
 
@@ -381,272 +385,273 @@ export const TransactionForm = ({
   };
 
   return (
-    <Form {...form}>
-      <div className="space-y-6">
-        <div className="flex-1 space-y-4 max-w-[200px]">
-          {/* <div>
+    <>
+      <Card className="panel-surface border-border/70 p-0 ">
+        <CardContent className="py-2 px-4 pb-4">
+          <Form  {...form}>
+            <div className="flex gap-6">
+              <div className="flex-1 space-y-4">
+                {/* <div>
               <p className="section-heading">Step 1 · Transaction Types</p>
               <p className="mt-1 text-sm text-muted-foreground">Select transaction types: Issue, Return, Renew</p>
             </div> */}
-          <FormLabel>Transaction type</FormLabel>
-          <Select
-            value={activeTab}
-            onValueChange={(value) => {
-              const tab = value;
-              setActiveTab(tab);
-              setMember(null);
-              setQueuedBooks([]);
-              setScannedBook(null);
-              setAssetDoc(null);
-              setTabAssetData(null);
-              form.clearErrors();
-              form.setValue("memberQuery", "", { shouldValidate: false });
-              form.setValue("barcode", "", { shouldValidate: false });
-              setTimeout(() => {
-                if (tab === "renew" || tab == 'return') {
-                  bookInputRef.current?.focus();
-                } else {
-                  memberInputRef.current?.focus();
-                }
-              }, 10);
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select transaction type" />
-            </SelectTrigger>
-            <SelectContent>
-              {tabs.map((tab) => (
-                <SelectItem key={tab.value} value={tab.value}>
-                  {tab.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex gap-6">
-
-
-          <section className="space-y-4 flex-1">
-            {/* <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="section-heading">Step 2 · Member validation</p>
-                <p className="mt-1 text-sm text-muted-foreground">Validate by member ID, mobile, or card number.</p>
-              </div>
-              {member ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
+                <FormLabel>Transaction type</FormLabel>
+                <Select
+                  value={activeTab}
+                  onValueChange={(value) => {
+                    const tab = value;
+                    setActiveTab(tab);
                     setMember(null);
                     setQueuedBooks([]);
                     setScannedBook(null);
                     setAssetDoc(null);
+                    setTabAssetData(null);
                     form.clearErrors();
+                    form.setValue("memberQuery", "", { shouldValidate: false });
+                    form.setValue("barcode", "", { shouldValidate: false });
+                    setTimeout(() => {
+                      if (tab === "renew" || tab == 'return') {
+                        bookInputRef.current?.focus();
+                      } else {
+                        memberInputRef.current?.focus();
+                      }
+                    }, 10);
                   }}
                 >
-                  Reset member
-                </Button>
-              ) : null}
-            </div> */}
-            <div className="grid gap-y-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start ">
-              <FormField
-                control={form.control}
-                name="memberQuery"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Member information</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          {...field}
-                          ref={(e) => {
-                            field.ref(e);
-                            memberInputRef.current = e;
-                          }}
-                          autoComplete="off"
-                          onFocus={() => setMemberInputFocused(true)}
-                          onBlur={() => setMemberInputFocused(false)}
-                          disabled={activeTab === "renew" || activeTab === "return"}
-                        />
-                        {memberLoading && (
-                          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                    {memberSuggestions?.length > 0 && (memberInputFocused || dropdownActive) && (
-                      <div
-                        className="mt-2 max-h-40 overflow-y-auto border rounded-md bg-background"
-                        onMouseEnter={() => setDropdownActive(true)}
-                        onMouseLeave={() => setDropdownActive(false)}
-                      >
-                        {memberSuggestions.map((m, idx) => (
-                          <div
-                            key={idx}
-                            className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
-                            onClick={() => {
-                              handleSuggestionClick(m.value || m.id);
-                              setTimeout(() => bookInputRef.current?.focus(), 10);
-                            }}
-                          >
-                            <div className="font-medium">{m.value}</div>
-                            <div className="text-sm text-muted-foreground">{m.description}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </FormItem>
-                )}
-              />
-            </div>
-            {member ? <MemberDetails member={member} issuedCount={issuedCount} maxIssueLimit={maxIssueLimit} /> : null}
-          </section>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select transaction type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tabs.map((tab) => (
+                      <SelectItem key={tab.value} value={tab.value}>
+                        {tab.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <section className="space-y-4 flex-1">
-            {/* <div>
-              <p className="section-heading">Step 3 · Barcode input</p>
-              <p className="mt-1 text-sm text-muted-foreground">Manual entry or scanner-ready wedge input supported.</p>
-            </div> */}
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-start">
-              <FormField
-                control={form.control}
-                name="barcode"
-                render={({ field }) => (
-                  <FormItem className="relative">
-                    <FormLabel>Book information</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          {...field}
-                          ref={(e) => {
-                            field.ref(e);
-                            bookInputRef.current = e;
-                          }}
-                          disabled={hasDueCharges}
-                          onFocus={() => setBookInputFocused(true)}
-                          onBlur={() => setBookInputFocused(false)}
-                          onChange={(e) => {
-                            if (activeTab === "issue") {
-                              if (!member || member.is_valid_membership === false) {
-                                const msg = !member ? "Please enter Member ID before barcode scan " : "Membership is not valid";
-                                toast.error(msg, { toastId: "barcode-err" });
-                                return;
-                              }
-                            }
-                            form.clearErrors("barcode");
-                            field.onChange(e);
-                          }}
-                          placeholder={activeTab === "reservation" ? "Search Book" : "Scan or type barcode"}
-                          autoComplete="off"
-                          onKeyDown={(event) => {
-                            if (activeTab === "issue") {
-                              if (!member || member.is_valid_membership === false) {
-                                event.preventDefault();
-                                const msg = !member ? "Please enter Member ID before barcode scan " : "Membership is not valid";
-                                toast.error(msg, { toastId: "barcode-err" });
-                                return;
-                              }
-                            }
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              const res = getAssetDetailFun(field.value);
-                              if (res instanceof Promise) {
-                                res.then(async (success) => {
-                                  if (success !== false) {
-                                    if (activeTab === "renew") {
-                                      const currentMemberId = form.getValues("memberQuery");
-                                      if (currentMemberId) {
-                                        try {
-                                          const validatedTransaction = await validateMemberTransaction({ text: currentMemberId });
-                                          if (!validatedTransaction.valid) {
-                                            toast.error(validatedTransaction.message);
-                                            setMember(null);
-                                            setTabAssetData(null);
-                                          } else {
-                                            toast.success(validatedTransaction.message);
-                                            setMember((prev: any) => prev ? { ...prev, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
-                                          }
-                                        } catch (error: any) {
-                                          toast.error(error.message || "Failed to validate member");
-                                        }
-                                      }
-                                      setTimeout(() => {
-                                        memberInputRef.current?.focus();
-                                      }, 10);
-                                    }
-                                    else if (activeTab === "return") {
-                                      setTimeout(() => {
-                                        memberInputRef.current?.focus();
-                                      }, 10);
-                                    }
-                                  } else {
-                                    setTimeout(() => {
-                                      bookInputRef.current?.focus();
-                                    }, 10);
-                                  }
-                                });
-                              }
-                            }
-                          }}
-                        />
-                        {bookLoading && (
-                          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                    {bookSuggestions?.length > 0 && (bookInputFocused || bookDropdownActive) && (
-                      <div
-                        className="mt-2 max-h-40 overflow-y-auto border rounded-md bg-background absolute z-10 w-full"
-                        onMouseEnter={() => setBookDropdownActive(true)}
-                        onMouseLeave={() => setBookDropdownActive(false)}
-                      >
-                        {bookSuggestions.map((m, idx) => (
-                          <div
-                            key={idx}
-                            className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0 flex justify-between items-center"
-                            onClick={() => handleBookSuggestionClick(m)}
-                          >
-                            <div>
-                              <div className="font-medium">{m.value}</div>
-                              <div className="text-sm text-muted-foreground">{m.description}</div>
-                            </div>
-                            {m.status && (
-                              <div>
-                                <span className="data-chip">{m.status}</span>
+
+              <section className="space-y-4 flex-1">
+                <div className="grid gap-y-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start ">
+                  <FormField
+                    control={form.control}
+                    name="memberQuery"
+                    render={({ field }) => (
+                      <FormItem className="relative ">
+                        <FormLabel>Member information</FormLabel>
+                        <FormControl>
+                          <div className="relative mb-0">
+                            <Input
+                              {...field}
+                              ref={(e) => {
+                                field.ref(e);
+                                memberInputRef.current = e;
+                              }}
+                              autoComplete="off"
+                              onFocus={() => setMemberInputFocused(true)}
+                              onBlur={() => setMemberInputFocused(false)}
+                              disabled={activeTab === "renew" || activeTab === "return"}
+                            />
+                            {memberLoading && (
+                              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                               </div>
                             )}
                           </div>
-                        ))}
-                      </div>
+                        </FormControl>
+                        <FormMessage />
+                        {memberSuggestions?.length > 0 && (memberInputFocused || dropdownActive) && (
+                          <div
+                            className="mt-2 max-h-40 overflow-y-auto border rounded-md bg-background absolute z-10 w-full left-0 top-[60px]"
+                            onMouseEnter={() => setDropdownActive(true)}
+                            onMouseLeave={() => setDropdownActive(false)}
+                          >
+                            {memberSuggestions.map((m, idx) => (
+                              <div
+                                key={idx}
+                                className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                                onClick={() => {
+                                  handleSuggestionClick(m.value || m.id);
+                                  setTimeout(() => bookInputRef.current?.focus(), 10);
+                                }}
+                              >
+                                <div className="font-medium">{m.value}</div>
+                                <div className="text-sm text-muted-foreground">{m.description}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </FormItem>
                     )}
-                  </FormItem>
-                )}
-              />
-              {
-                activeTab !== "reservation" &&
-                <Button type="button" variant="secondary" onClick={() => setIsScannerOpen(true)} className="md:mt-6">
-                  <ScanLine />
-                  Add book
-                </Button>
-              }
+                  />
+                </div>
+
+              </section>
+
+              <section className="space-y-4 flex-1">
+                {/* <div>
+              <p className="section-heading">Step 3 · Barcode input</p>
+              <p className="mt-1 text-sm text-muted-foreground">Manual entry or scanner-ready wedge input supported.</p>
+            </div> */}
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-start">
+                  <FormField
+                    control={form.control}
+                    name="barcode"
+                    render={({ field }) => (
+                      <FormItem className="relative">
+                        <FormLabel>Book information</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              {...field}
+                              ref={(e) => {
+                                field.ref(e);
+                                bookInputRef.current = e;
+                              }}
+                              disabled={hasDueCharges}
+                              onFocus={() => setBookInputFocused(true)}
+                              onBlur={() => setBookInputFocused(false)}
+                              onChange={(e) => {
+                                if (activeTab === "issue") {
+                                  if (!member || member.is_valid_membership === false) {
+                                    const msg = !member ? "Please enter Member ID before barcode scan " : "Membership is not valid";
+                                    toast.error(msg, { toastId: "barcode-err" });
+                                    return;
+                                  }
+                                }
+                                form.clearErrors("barcode");
+                                field.onChange(e);
+                              }}
+                              placeholder={activeTab === "reservation" ? "Search Book" : "Scan or type barcode"}
+                              autoComplete="off"
+                              onKeyDown={(event) => {
+                                if (activeTab === "issue") {
+                                  if (!member || member.is_valid_membership === false) {
+                                    event.preventDefault();
+                                    const msg = !member ? "Please enter Member ID before barcode scan " : "Membership is not valid";
+                                    toast.error(msg, { toastId: "barcode-err" });
+                                    return;
+                                  }
+                                }
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  const res = getAssetDetailFun(field.value);
+                                  if (res instanceof Promise) {
+                                    res.then(async (success) => {
+                                      if (success !== false) {
+                                        if (activeTab === "renew") {
+                                          const currentMemberId = form.getValues("memberQuery");
+                                          if (currentMemberId) {
+                                            try {
+                                              const validatedTransaction = await validateMemberTransaction({ text: currentMemberId });
+                                              if (!validatedTransaction.valid) {
+                                                toast.error(validatedTransaction.message);
+                                                setMember(null);
+                                                setTabAssetData(null);
+                                              } else {
+                                                toast.success(validatedTransaction.message);
+                                                setMember((prev: any) => prev ? { ...prev, due_date: validatedTransaction.due_date, is_valid_membership: true } : null);
+                                              }
+                                            } catch (error: any) {
+                                              toast.error(error.message || "Failed to validate member");
+                                            }
+                                          }
+                                          setTimeout(() => {
+                                            memberInputRef.current?.focus();
+                                          }, 10);
+                                        }
+                                        else if (activeTab === "return") {
+                                          setTimeout(() => {
+                                            memberInputRef.current?.focus();
+                                          }, 10);
+                                        }
+                                      } else {
+                                        setTimeout(() => {
+                                          bookInputRef.current?.focus();
+                                        }, 10);
+                                      }
+                                    });
+                                  }
+                                }
+                              }}
+                            />
+                            {bookLoading && (
+                              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                              </div>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                        {bookSuggestions?.length > 0 && (bookInputFocused || bookDropdownActive) && (
+                          <div
+                            className="mt-2 max-h-40 overflow-y-auto border rounded-md bg-background absolute z-10 w-full"
+                            onMouseEnter={() => setBookDropdownActive(true)}
+                            onMouseLeave={() => setBookDropdownActive(false)}
+                          >
+                            {bookSuggestions.map((m, idx) => (
+                              <div
+                                key={idx}
+                                className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0 flex justify-between items-center"
+                                onClick={() => handleBookSuggestionClick(m)}
+                              >
+                                <div>
+                                  <div className="font-medium">{m.value}</div>
+                                  <div className="text-sm text-muted-foreground">{m.description}</div>
+                                </div>
+                                {m.status && (
+                                  <div>
+                                    <span className="data-chip">{m.status}</span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </FormItem>
+                    )}
+                  />
+                  {
+                    activeTab !== "reservation" &&
+                    <Button type="button" variant="secondary" onClick={() => setIsScannerOpen(true)} className="md:mt-6">
+                      <ScanLine />
+                      Add book
+                    </Button>
+                  }
+                </div>
+
+
+              </section>
+
+
             </div>
-
-            {scannedBook ? <BookDetails book={scannedBook} /> : null}
-          </section>
+            <BarcodeScanner
+              open={isScannerOpen}
+              onOpenChange={setIsScannerOpen}
+              onScanSuccess={handleScanSuccess}
+            />
+          </Form>
+        </CardContent>
+      </Card>
+      <div className="flex gap-6">
+        <div className="flex-1">
+          {member ? <Card className="pt-6">
+            <CardContent>
+              <MemberDetails member={member} issuedCount={issuedCount} maxIssueLimit={maxIssueLimit} />
+            </CardContent>
+          </Card>
+            : null}
         </div>
-
-
+        <div className="flex-1">
+          {scannedBook ? <Card className="pt-6">
+            <CardContent>
+              <BookDetails book={scannedBook} />
+            </CardContent>
+          </Card>
+            : null}
+        </div>
       </div>
-      <BarcodeScanner
-        open={isScannerOpen}
-        onOpenChange={setIsScannerOpen}
-        onScanSuccess={handleScanSuccess}
-      />
-    </Form>
+    </>
   );
 };
