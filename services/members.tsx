@@ -1,3 +1,4 @@
+import { apiCall } from "./api";
 import { redirectToLogin } from "@/lib/utils";
 
 
@@ -25,50 +26,23 @@ export const validateMembers = async ({
     filters?: Record<string, unknown> | string;
     fields_to_fetch?: string[] | string;
 }) => {
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-        console.error("You're logged out. Please log-in to continue");
-        return;
-    }
-
-    const { access_token } = JSON.parse(token);
-
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.validate_link_and_fetch`,
-        {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: "application/json",
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                "X-Frappe-Doctype": doctype,
-                "X-Requested-With": "XMLHttpRequest",
-            },
-            body: new URLSearchParams({
-                txt: text,
-                doctype,
-                ignore_user_permissions: String(ignore_user_permissions),
-                reference_doctype,
-                page_length: String(page_length),
-                link_fieldname,
-                filters: typeof filters === "string" ? filters : JSON.stringify(filters),
-                docname: text,
-                fields_to_fetch: typeof fields_to_fetch === "string" ? fields_to_fetch : JSON.stringify(fields_to_fetch),
-            }),
-        }
-    );
-
-    const data = await res.json();
-
-    if (res.status === 401) {
-        redirectToLogin(true);
-        return;
-    }
-
-    if (!res.ok) {
-        throw new Error(data.error || "Failed to validate member");
-    }
+    const data = await apiCall(`/api/method/frappe.client.validate_link_and_fetch`, {
+        method: "POST",
+        headers: {
+            "X-Frappe-Doctype": doctype,
+        },
+        body: new URLSearchParams({
+            txt: text,
+            doctype,
+            ignore_user_permissions: String(ignore_user_permissions),
+            reference_doctype,
+            page_length: String(page_length),
+            link_fieldname,
+            filters: typeof filters === "string" ? filters : JSON.stringify(filters),
+            docname: text,
+            fields_to_fetch: typeof fields_to_fetch === "string" ? fields_to_fetch : JSON.stringify(fields_to_fetch),
+        }),
+    });
 
     if (data.message && typeof data.message === "object") {
         return {
@@ -81,184 +55,56 @@ export const validateMembers = async ({
 }
 
 export const validateMemberTransaction = async ({ text = '' }: { text: string }) => {
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-        console.error("You're logged out. Please log-in to continue");
-        return;
-    }
-
-    const { access_token } = JSON.parse(token);
-
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/library_management.library_management.doctype.book_transaction.book_transaction.membership_validate`,
-        {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-            },
-            body: new URLSearchParams({
-                name: text,
-            }),
-        }
-    );
-
-    const data = await res.json();
-
-    if (res.status === 401) {
-        redirectToLogin(true);
-        return;
-    }
-
-    if (!res.ok) {
-        throw new Error(data.error || "Failed to validate member transaction");
-    }
+    const data = await apiCall(`/api/method/library_management.library_management.doctype.book_transaction.book_transaction.membership_validate`, {
+        method: "POST",
+        body: new URLSearchParams({
+            name: text,
+        }),
+    });
 
     return data.message;
 }
 
 export const getMemberImage = async ({ docname }: { docname: string }) => {
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-        console.error("You're logged out. Please log-in to continue");
-        return;
-    }
-
-    const { access_token } = JSON.parse(token);
-
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.get_value?doctype=Member&fieldname=photo&filters=` + docname + "&_=" + Date.now(),
-        {
-            method: "GET",
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-            },
-        }
-    );
-
-    const data = await res.json();
-
-    if (res.status === 401) {
-        redirectToLogin(true);
-        return;
-    }
-
-    if (!res.ok) {
-        throw new Error(data.error || "Failed to get member image");
-    }
+    const data = await apiCall(`/api/method/frappe.client.get_value?doctype=Member&fieldname=photo&filters=` + docname + "&_=" + Date.now(), {
+        method: "GET"
+    });
 
     return data.message;
 }
 
 export const getMemberCustomer = async ({ docname }: { docname: string }) => {
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-        console.error("You're logged out. Please log-in to continue");
-        return;
-    }
-
-    const { access_token } = JSON.parse(token);
-
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.get_value?doctype=Member&fieldname=customer&filters=` + docname + "&_=" + Date.now(),
-        {
-            method: "GET",
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-            },
-        }
-    );
-
-    const data = await res.json();
-
-    if (res.status === 401) {
-        redirectToLogin(true);
-        return;
-    }
-
-    if (!res.ok) {
-        throw new Error(data.error || "Failed to get member customer");
-    }
+    const data = await apiCall(`/api/method/frappe.client.get_value?doctype=Member&fieldname=customer&filters=` + docname + "&_=" + Date.now(), {
+        method: "GET"
+    });
 
     return data.message;
 }
 
 export const validateUserRoles = async () => {
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-        console.error("You're logged out. Please log-in to continue");
-        return;
-    }
-
-    const { access_token } = JSON.parse(token);
-
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/library_management.api.api.validate_user_roles`,
-        {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-            },
-        }
-    );
-
-    const data = await res.json();
-
-    if (res.status === 401) {
-        redirectToLogin(true);
-        return;
-    }
-
-    if (!res.ok) {
-        throw new Error(data.error || "Failed to validate user roles");
-    }
+    const data = await apiCall(`/api/method/library_management.api.api.validate_user_roles`, {
+        method: "POST"
+    });
 
     return data.message;
 }
 
 export const getMemberList = async ({ docname, generateBill = true }: { docname: string, generateBill?: boolean }) => {
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-        console.error("You're logged out. Please log-in to continue");
-        return;
-    }
-
-    const { access_token } = JSON.parse(token);
-
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.get_list`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${access_token}`,
+    const data = await apiCall(`/api/method/frappe.client.get_list`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            doctype: "Sales Invoice",
+            filters: {
+                customer: docname,
+                docstatus: 1,
+                outstanding_amount: [">", 0]
             },
-            body: JSON.stringify({
-                doctype: "Sales Invoice",
-                filters: {
-                    customer: docname,
-                    docstatus: 1,
-                    outstanding_amount: [">", 0]
-                },
-                fields: ["name", "outstanding_amount"]
-            })
-        }
-    );
-
-    const data = await res.json();
-
-    if (res.status === 401) {
-        redirectToLogin(true);
-        return;
-    }
-
-    if (!res.ok) {
-        throw new Error(data.error || "Failed to get sales invoices");
-    }
+            fields: ["name", "outstanding_amount"]
+        })
+    });
 
     if (data.message && data.message.length > 0 && generateBill) {
         const paymentEntryRes = await get_payment_entry({
@@ -272,42 +118,13 @@ export const getMemberList = async ({ docname, generateBill = true }: { docname:
 }
 
 export const get_payment_entry = async ({ dt, dn }: { dt: string, dn: string }) => {
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-        console.error("You're logged out. Please log-in to continue");
-        return;
-    }
-
-    const { access_token } = JSON.parse(token);
-
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry`,
-        {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: "application/json",
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                "X-Requested-With": "XMLHttpRequest",
-            },
-            body: new URLSearchParams({
-                dt: dt,
-                dn: dn,
-            }),
-        }
-    );
-
-    const data = await res.json();
-
-    if (res.status === 401) {
-        redirectToLogin(true);
-        return;
-    }
-
-    if (!res.ok) {
-        throw new Error(data.error || "Failed to get payment entry");
-    }
+    const data = await apiCall(`/api/method/erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry`, {
+        method: "POST",
+        body: new URLSearchParams({
+            dt: dt,
+            dn: dn,
+        }),
+    });
 
     const insertRes = await getClientInsert({ doc: data.message });
 
@@ -315,47 +132,18 @@ export const get_payment_entry = async ({ dt, dn }: { dt: string, dn: string }) 
 }
 
 export const getClientInsert = async ({ doc }: { doc: any }) => {
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-        console.error("You're logged out. Please log-in to continue");
-        return;
-    }
-
-    const { access_token } = JSON.parse(token);
-
     if (doc) {
         doc.reference_no = "123";
         const today = new Date();
         doc.reference_date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     }
 
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.insert`,
-        {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: "application/json",
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                "X-Requested-With": "XMLHttpRequest",
-            },
-            body: new URLSearchParams({
-                doc: JSON.stringify(doc),
-            }),
-        }
-    );
-
-    const data = await res.json();
-
-    if (res.status === 401) {
-        redirectToLogin(true);
-        return;
-    }
-
-    if (!res.ok) {
-        throw new Error(data.error || "Failed to insert document");
-    }
+    const data = await apiCall(`/api/method/frappe.client.insert`, {
+        method: "POST",
+        body: new URLSearchParams({
+            doc: JSON.stringify(doc),
+        }),
+    });
 
     if (data.message && data.message.name) {
         window.open(`${process.env.NEXT_PUBLIC_API_URL}/app/payment-entry/${data.message.name}/`, "_blank", "noopener,noreferrer");

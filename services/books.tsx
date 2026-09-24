@@ -1,3 +1,4 @@
+import { apiCall } from "./api";
 import { Book } from "../lib/mock-library-api";
 
 
@@ -9,53 +10,21 @@ const formatDate = (isoString: string) => {
     return `${year}-${month}-${day}`;
 };
 
-export const submitFrappeDocument = async (doc: any, action: string, access_token: string, errorMessage: string) => {
+export const submitFrappeDocument = async (doc: any, action: string, errorMessage: string) => {
     const params = new URLSearchParams({
         doc: JSON.stringify(doc),
         action: action,
     });
 
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.form.save.savedocs`,
-        {
+    try {
+        const data = await apiCall('/api/method/frappe.desk.form.save.savedocs', {
             method: "POST",
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: "application/json",
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                "X-Requested-With": "XMLHttpRequest",
-            },
             body: params.toString(),
-        }
-    );
-
-    const data = await res.json();
-
-    let finalErrorMessage = data.error?.message || data.error || errorMessage;
-    if (data._server_messages) {
-        try {
-            const messages = typeof data._server_messages === 'string' ? JSON.parse(data._server_messages) : data._server_messages;
-            if (Array.isArray(messages)) {
-                for (let i = messages.length - 1; i >= 0; i--) {
-                    try {
-                        const msgObj = typeof messages[i] === 'string' ? JSON.parse(messages[i]) : messages[i];
-                        if (msgObj && msgObj.message) {
-                            finalErrorMessage = `Please contact Library Admin: ${msgObj.message}`;
-                            if (msgObj.raise_exception) {
-                                break;
-                            }
-                        }
-                    } catch (e) { }
-                }
-            }
-        } catch (e) { }
+        });
+        return data;
+    } catch (error: any) {
+        throw new Error(error.message || errorMessage);
     }
-
-    if (!res.ok || data.exc) {
-        throw new Error(finalErrorMessage);
-    }
-
-    return data;
 };
 
 export const getBookTransactionDetails = async ({
@@ -67,27 +36,14 @@ export const getBookTransactionDetails = async ({
     member: string;
     transaction_type?: string;
 }): Promise<Book> => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        throw new Error("You're logged out. Please log-in to continue");
-    }
 
-    const { access_token } = JSON.parse(token);
-
-    const res = await fetch("/api/book-transaction", {
+    const data = await apiCall("/api/book-transaction", {
         method: "POST",
         headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${access_token}`,
+            "Content-Type": "application/json"
         },
-        body: JSON.stringify({ barcode, member, transaction_type }),
+        body: JSON.stringify({ barcode, member, transaction_type })
     });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-        throw new Error(data.error || "Failed to look up book details");
-    }
 
     if (!data.message) {
         throw new Error("No asset details returned for this barcode");
@@ -133,27 +89,15 @@ export const submitBookTransaction = async ({
     otp_verified?: number;
     remark?: string;
 }) => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("You're logged out. Please log-in to continue");
-    const { access_token } = JSON.parse(token);
 
     let doc: any;
     if (savedDocName) {
-        const getRes = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.get?doctype=Book+Transaction&name=${savedDocName}`,
-            {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${access_token}`,
-                    Accept: "application/json",
-                },
-            }
-        );
-        const getData = await getRes.json();
-        if (!getRes.ok) {
-            throw new Error(getData.error || "Failed to fetch existing transaction");
+        try {
+            const getData = await apiCall(`/api/method/frappe.client.get?doctype=Book+Transaction&name=${savedDocName}`, { method: "GET" });
+            doc = getData.message;
+        } catch (error: any) {
+            throw new Error(error.message || "Failed to fetch existing transaction");
         }
-        doc = getData.message;
         if (otp) {
             doc.otp = otp;
             doc.otp_verified = otp_verified;
@@ -248,7 +192,7 @@ export const submitBookTransaction = async ({
         }
     }
 
-    const data = await submitFrappeDocument(doc, action, access_token, `Failed to submit ${transaction_type.toLowerCase()} transaction`);
+    const data = await submitFrappeDocument(doc, action, `Failed to submit ${transaction_type.toLowerCase()} transaction`);
     const returnedDoc = data.docs?.[0] || data.message || {};
 
     if (transaction_type === "Issue") {
@@ -290,9 +234,6 @@ export const submitBookRenew = async ({
     otp_verified?: number;
     remark?: string;
 }) => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("You're logged out. Please log-in to continue");
-    const { access_token } = JSON.parse(token);
 
     const formatDate = (isoString: string) => {
         const d = new Date(isoString);
@@ -301,21 +242,12 @@ export const submitBookRenew = async ({
 
     let doc: any;
     if (savedDocName) {
-        const getRes = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.client.get?doctype=Book+Transaction&name=${savedDocName}`,
-            {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${access_token}`,
-                    Accept: "application/json",
-                },
-            }
-        );
-        const getData = await getRes.json();
-        if (!getRes.ok) {
-            throw new Error(getData.error || "Failed to fetch existing transaction");
+        try {
+            const getData = await apiCall(`/api/method/frappe.client.get?doctype=Book+Transaction&name=${savedDocName}`, { method: "GET" });
+            doc = getData.message;
+        } catch (error: any) {
+            throw new Error(error.message || "Failed to fetch existing transaction");
         }
-        doc = getData.message;
         if (otp) {
             doc.otp = otp;
             doc.otp_verified = otp_verified;
@@ -372,7 +304,7 @@ export const submitBookRenew = async ({
         };
     }
 
-    const data = await submitFrappeDocument(doc, action, access_token, "Failed to submit renew transaction");
+    const data = await submitFrappeDocument(doc, action, "Failed to submit renew transaction");
     const returnedDoc = data.docs?.[0] || data.message || {};
 
     return {
@@ -412,9 +344,6 @@ export const getAssetByBarcode = async ({
     transactionType: "Issue" | "Return" | "Renew";
     total_due_charges?: number;
 }): Promise<AssetByBarcodeMessage> => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("You're logged out. Please log-in to continue");
-    const { access_token } = JSON.parse(token);
 
     const tempName = `new-book-transaction-${Math.random().toString(36).substring(2, 12)}`;
 
@@ -443,23 +372,10 @@ export const getAssetByBarcode = async ({
         args: JSON.stringify({ self: selfDoc }),
     });
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/method/run_doc_method`, {
+    const data = await apiCall("/api/method/run_doc_method", {
         method: "POST",
-        headers: {
-            Authorization: `Bearer ${access_token}`,
-            Accept: "application/json",
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "X-Requested-With": "XMLHttpRequest",
-            "X-Frappe-CMD": "",
-        },
         body: body.toString(),
     });
-
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(
-        typeof data.message === 'string' ? data.message : (data.error || "Failed to fetch asset by barcode")
-    );
 
     // The Frappe method returns the book status string (e.g. "Available") as `message`,
     // while the actual asset details it populated on the doc are in `data.docs[0]`.
@@ -514,29 +430,15 @@ export const validateMemberToIssueBook = async ({
 }: {
     member: string;
 }) => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("You're logged out. Please log-in to continue");
-    const { access_token } = JSON.parse(token);
 
     const body = new URLSearchParams({
         member: member,
     });
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/method/book_allowed_issue.allowed_book`, {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${access_token}`,
-            Accept: "application/json",
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "X-Requested-With": "XMLHttpRequest",
-            "X-Frappe-CMD": "",
-        },
+    const data = await apiCall(`/api/method/book_allowed_issue.allowed_book`, {
+        method: 'POST',
         body: body.toString(),
     });
-
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.message || data.error || "Failed to validate member for issue");
 
     return data;
 };
@@ -546,30 +448,13 @@ export const generateOTP = async ({
 }: {
     docname: string;
 }) => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("You're logged out. Please log-in to continue");
-    const { access_token } = JSON.parse(token);
 
     const body = new URLSearchParams({ docname });
 
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/library_management.library_management.doctype.book_transaction.book_transaction.generate_otp`,
-        {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: 'application/json',
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-Frappe-CMD': '',
-            },
-            body: body.toString(),
-        }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.message || data.error || 'Failed to generate OTP');
+    const data = await apiCall(`/api/method/library_management.library_management.doctype.book_transaction.book_transaction.generate_otp`, {
+        method: 'POST',
+        body: body.toString(),
+    });
 
     return data;
 };
@@ -579,26 +464,10 @@ export const getBookTransaction = async ({
 }: {
     docname: string;
 }) => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("You're logged out. Please log-in to continue");
-    const { access_token } = JSON.parse(token);
 
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.form.load.getdoc?doctype=Book+Transaction&name=${docname}`,
-        {
-            method: "GET",
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: "application/json",
-            },
-        }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) {
-        throw new Error(data.error || "Failed to fetch transaction details");
-    }
+    const data = await apiCall(`/api/method/frappe.desk.form.load.getdoc?doctype=Book+Transaction&name=${docname}`, {
+        method: "GET"
+    });
 
     return data;
 };
@@ -610,32 +479,15 @@ export const countBooksIssued = async ({
 }: {
     member: string;
 }) => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("You're logged out. Please log-in to continue");
-    const { access_token } = JSON.parse(token);
 
     const body = new URLSearchParams({
         member
     });
 
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/library_management.library_management.doctype.book_reservation.book_reservation.count_books_issued`,
-        {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: 'application/json',
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-Frappe-CMD': '',
-            },
-            body: body.toString(),
-        }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.message || data.error || 'Failed to count books issued');
+    const data = await apiCall(`/api/method/library_management.library_management.doctype.book_reservation.book_reservation.count_books_issued`, {
+        method: 'POST',
+        body: body.toString(),
+    });
 
     return data;
 }
@@ -660,9 +512,6 @@ export const searchFrappeLink = async ({
     page_length?: number;
     filters?: Record<string, any>;
 }): Promise<{ message: SearchLinkResult[] }> => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("You're logged out. Please log-in to continue");
-    const { access_token } = JSON.parse(token);
 
     const body: Record<string, string> = {
         txt,
@@ -678,29 +527,10 @@ export const searchFrappeLink = async ({
 
     const params = new URLSearchParams(body);
 
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.search.search_link`,
-        {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: 'application/json',
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-Frappe-CMD': '',
-            },
-            body: params.toString(),
-        }
-    );
-
-    if (res.status === 401) {
-        redirectToLogin(true);
-        return { message: [] };
-    }
-
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.message || data.error || 'Failed to search');
+    const data = await apiCall('/api/method/frappe.desk.search.search_link', {
+        method: 'POST',
+        body: params.toString(),
+    });
 
     return data;
 };
@@ -718,9 +548,6 @@ export const selectBook = async ({
     item_code: string;
     limit?: number;
 }): Promise<{ message: SelectBookResult[] }> => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("You're logged out. Please log-in to continue");
-    const { access_token } = JSON.parse(token);
 
     const queryParams = new URLSearchParams({
         doctype: "Asset",
@@ -729,21 +556,9 @@ export const selectBook = async ({
         limit: limit.toString()
     });
 
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.reportview.get_list?${queryParams.toString()}`,
-        {
-            method: 'GET',
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-        }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.message || data.error || 'Failed to select books');
+    const data = await apiCall(`/api/method/frappe.desk.reportview.get_list?${queryParams.toString()}`, {
+        method: 'GET'
+    });
 
     return data;
 };
@@ -814,7 +629,7 @@ export const submitBookReservation = async ({
         doc.reservation_remarks = reservation_remarks;
     }
 
-    const data = await submitFrappeDocument(doc, "Save", access_token, "Failed to submit book reservation");
+    const data = await submitFrappeDocument(doc, "Save", "Failed to submit book reservation");
     return data.docs?.[0] || data.message || {};
 };
 
@@ -824,30 +639,13 @@ export const get_requested_book_reservations = async ({
 }: {
     self_name: string;
 }) => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("You're logged out. Please log-in to continue");
-    const { access_token } = JSON.parse(token);
 
     const body = new URLSearchParams({ self_name });
 
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/library_management.library_management.doctype.book_transaction.book_transaction.get_requested_book_reservations`,
-        {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: 'application/json',
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-Frappe-CMD': '',
-            },
-            body: body.toString(),
-        }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.message || data.error || 'Failed to fetch requested book reservations');
+    const data = await apiCall(`/api/method/library_management.library_management.doctype.book_transaction.book_transaction.get_requested_book_reservations`, {
+        method: 'POST',
+        body: body.toString(),
+    });
 
     return data;
 };
@@ -863,9 +661,6 @@ export const getAssetList = async ({
     filters?: any[];
     order_by?: string;
 }) => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("You're logged out. Please log-in to continue");
-    const { access_token } = JSON.parse(token);
 
     const body = new URLSearchParams({
         doctype: "Asset",
@@ -885,23 +680,10 @@ export const getAssetList = async ({
         with_comment_count: "1"
     });
 
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/frappe.desk.reportview.get`,
-        {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: 'application/json',
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: body.toString(),
-        }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.message || data.error || 'Failed to fetch asset list');
+    const data = await apiCall(`/api/method/frappe.desk.reportview.get`, {
+        method: 'POST',
+        body: body.toString(),
+    });
 
     return data;
 };
@@ -911,29 +693,14 @@ export const getMemberDueHistory = async ({
 }: {
     member: string;
 }) => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error("You're logged out. Please log-in to continue");
-    const { access_token } = JSON.parse(token);
 
     const params = new URLSearchParams();
     params.append('member', member);
 
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/method/library_management.custom_api.get_member_due_history`,
-        {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: 'application/json',
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: params.toString()
-        }
-    );
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || data.error || 'Failed to fetch member due history');
+    const data = await apiCall(`/api/method/library_management.custom_api.get_member_due_history`, {
+        method: 'POST',
+        body: params.toString()
+    });
 
     return data;
 };
