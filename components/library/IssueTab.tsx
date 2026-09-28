@@ -162,14 +162,26 @@ export const IssueTab = ({
 
   return (
     <div className="space-y-6">
-      <section className="space-y-4">
-        <div className="flex gap-6">
-          <Card className="panel-surface border-border/70 p-0 flex-1">
+      <section className="space-y-6">
+        {/* <div className="flex gap-6"> */}
+        {/*  <Card className="panel-surface border-border/70 p-0 flex-1">
             <CardContent className="py-3 px-4 pb-4">
+
+            </CardContent>
+          </Card>
+
+          <div className="flex-1">*/}
+        <OverdueBooks memberId={member?.name} />
+        {/* </div> */}
+        {/* </div> */}
+        <Card className="panel-surface border-border/70 p-0 flex-1">
+          <CardContent className="py-3 px-4 pb-4">
+
+            <div >
               <div className="  w-full flex-1 !p-0">
-                <div className="p-5 flex gap-3">
-                  <div>
-                    <p className="section-heading">Issue Date</p>
+                <div className="flex gap-4">
+                  <div className="flex gap-2 items-center">
+                    <p className="section-heading">Issue Date: </p>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -219,21 +231,25 @@ export const IssueTab = ({
                     </Popover>
                   </div>
 
-                  <div>
-                    <p className="section-heading">Due Date</p>
-                    {assetData?.dueDate || queuedBooks[0]?.dueDate ? <p className="mt-1 text-sm text-foreground">{format(new Date(assetData?.dueDate || queuedBooks[0]?.dueDate), 'dd/MM/yyyy')}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+                  <div className="flex gap-2 items-center">
+                    <p className="section-heading">Due Date: </p>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "mt-1 w-auto justify-start text-left font-normal pointer-events-none curser-not-allowed text-[#aeaeae]",
+                        !(assetData?.dueDate || queuedBooks[0]?.dueDate) && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {assetData?.dueDate || queuedBooks[0]?.dueDate ? (
+                        format(new Date(assetData?.dueDate || queuedBooks[0]?.dueDate as string), "dd/MM/yyyy")
+                      ) : (
+                        <span>--</span>
+                      )}
+                    </Button>
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-          <div className="flex-1">
-            <OverdueBooks memberId={member?.name} />
-          </div>
-        </div>
-        <Card className="panel-surface border-border/70 p-0 flex-1">
-          <CardContent className="py-3 px-4 pb-4">
-            <div className="table-shell1">
               <Table>
                 <TableHeader>
                   <TableRow>

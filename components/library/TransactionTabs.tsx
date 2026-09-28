@@ -745,34 +745,35 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <TransactionForm
-        form={form}
-        member={member}
-        setMember={setMember}
-        setQueuedBooks={setQueuedBooks}
-        setScannedBook={setScannedBook}
-        setAssetDoc={setAssetDoc}
-        memberInputFocused={memberInputFocused}
-        setMemberInputFocused={setMemberInputFocused}
-        dropdownActive={dropdownActive}
-        setDropdownActive={setDropdownActive}
-        memberSuggestions={memberSuggestions}
-        handleSuggestionClick={handleSuggestionClick}
-        getAssetDetailFun={getAssetDetailFun}
-        scannedBook={scannedBook}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        tabs={tabs}
-        setTabAssetData={setTabAssetData}
-        memberLoading={memberLoading}
-        hasDueCharges={hasDueCharges}
-        setReservedAssets={setReservedAssets}
-        issuedCount={issuedCount}
-        maxIssueLimit={maxIssueLimit}
-      />
-
-      <div className={cn(activeTab !== "issue" && "hidden", "mt-1")}>
+    <div className="flex flex-col gap-y-6 gap-x-4">
+      <div className="relative z-10 flex flex-col gap-4">
+        <TransactionForm
+          form={form}
+          member={member}
+          setMember={setMember}
+          setQueuedBooks={setQueuedBooks}
+          setScannedBook={setScannedBook}
+          setAssetDoc={setAssetDoc}
+          memberInputFocused={memberInputFocused}
+          setMemberInputFocused={setMemberInputFocused}
+          dropdownActive={dropdownActive}
+          setDropdownActive={setDropdownActive}
+          memberSuggestions={memberSuggestions}
+          handleSuggestionClick={handleSuggestionClick}
+          getAssetDetailFun={getAssetDetailFun}
+          scannedBook={scannedBook}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          tabs={tabs}
+          setTabAssetData={setTabAssetData}
+          memberLoading={memberLoading}
+          hasDueCharges={hasDueCharges}
+          setReservedAssets={setReservedAssets}
+          issuedCount={issuedCount}
+          maxIssueLimit={maxIssueLimit}
+        />
+      </div>
+      <div className={`${cn(activeTab !== "issue" && "hidden", " ")} relative z-1`}>
         <IssueTab
           form={form}
           queuedBooks={queuedBooks}
@@ -795,7 +796,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
           setRemark={setRemark}
         />
       </div>
-      <div className={cn(activeTab !== "return" && "hidden", "mt-1")}>
+      <div className={`${cn(activeTab !== "return" && "hidden", "")} relative z-1`}>
         <ReturnTab
           queuedAssets={queuedAssets}
           loading={tabAssetLoading}
@@ -814,7 +815,7 @@ const TransactionTabs = ({ setDueMessage, setDuePaymentId }: { setDueMessage?: (
           setRemark={setRemark}
         />
       </div>
-      <div className={cn(activeTab !== "renew" && "hidden", "mt-1")}>
+      <div className={`${cn(activeTab !== "renew" && "hidden", "")} relative z-1`}>
         <RenewTab
           queuedRenewAssets={queuedRenewAssets}
           setQueuedRenewAssets={setQueuedRenewAssets}

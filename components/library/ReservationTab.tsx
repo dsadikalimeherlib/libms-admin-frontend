@@ -33,9 +33,7 @@ export const ReservationTab = ({
   return (
     <div className="space-y-8 p-1 pt-0 ">
       {/* Top Section */}
-      <div className="flex-1">
-        <OverdueBooks memberId={member?.name} />
-      </div>
+      <OverdueBooks memberId={member?.name} />
 
       {/* Middle Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -126,7 +124,7 @@ export const ReservationTab = ({
         </Card>
       </div>
 
-      <div className="border-t border-border my-6"></div>
+
 
 
       <div className="flex justify-end items-center w-full">

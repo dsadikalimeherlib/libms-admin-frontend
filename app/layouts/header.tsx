@@ -16,7 +16,7 @@ const Header = ({ children }: { children: React.ReactNode }) => {
     }, []);
     const { session, signOut } = useAuth();
     return (
-        <div className="bg-white shadow-[0_4px_50px_-20px_#00000040] px-[30px] pr-[30px] pl-[15px] py-[10px] flex justify-between fixed left-[222px] top-0 right-0 z-[1]">
+        <div className="bg-white shadow-[0_4px_50px_-20px_#00000040] px-[30px] pr-[30px] pl-[15px] py-[10px] flex justify-between fixed left-[222px] top-0 right-0 z-[99]">
             <div>{children}</div>
             <div className="flex items-center gap-4">
                 <a target="_blank" href={`${process.env.NEXT_PUBLIC_API_URL}/app/lms`} className="text-[#00b0ab] hover:text-[#00b0ab] border border-solid border-[#00b0ab] py-1 px-2 rounded">Admin Panel</a>

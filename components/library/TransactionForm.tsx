@@ -586,25 +586,26 @@ export const TransactionForm = ({
                         <FormMessage />
                         {bookSuggestions?.length > 0 && (bookInputFocused || bookDropdownActive) && (
                           <div
-                            className="mt-2 max-h-40 overflow-y-auto border rounded-md bg-background absolute z-10 w-full"
+                            className="mt-2 max-h-[300px] overflow-y-auto border rounded-md bg-background absolute z-10 w-full"
                             onMouseEnter={() => setBookDropdownActive(true)}
                             onMouseLeave={() => setBookDropdownActive(false)}
                           >
                             {bookSuggestions.map((m, idx) => (
                               <div
                                 key={idx}
-                                className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0 flex justify-between items-center"
+                                className="px-2 pb-1 hover:bg-muted cursor-pointer border-b last:border-b-0 flex flex-col"
                                 onClick={() => handleBookSuggestionClick(m)}
                               >
-                                <div>
-                                  <div className="font-medium">{m.value}</div>
-                                  <div className="text-sm text-muted-foreground">{m.description}</div>
-                                </div>
                                 {m.status && (
                                   <div>
-                                    <span className="data-chip">{m.status}</span>
+                                    <span className="data-chip1 text-[11px] text-[#333]">{m.status}</span>
                                   </div>
                                 )}
+
+                                <div className="font-medium text-[13px]">{m.value}</div>
+                                <div className="text-sm text-muted-foreground text-[12px]">{m.description}</div>
+
+
                               </div>
                             ))}
                           </div>
@@ -634,24 +635,29 @@ export const TransactionForm = ({
           </Form>
         </CardContent>
       </Card>
-      <div className="flex gap-6">
-        <div className="flex-1">
-          {member ? <Card className="pt-6">
-            <CardContent>
-              <MemberDetails member={member} issuedCount={issuedCount} maxIssueLimit={maxIssueLimit} />
-            </CardContent>
-          </Card>
-            : null}
-        </div>
-        <div className="flex-1">
-          {scannedBook ? <Card className="pt-6">
-            <CardContent>
-              <BookDetails book={scannedBook} />
-            </CardContent>
-          </Card>
-            : null}
-        </div>
-      </div>
+      {
+        member || scannedBook ?
+
+          <div className="flex gap-6">
+            <div className="flex-1">
+              {member ? <Card className="pt-6">
+                <CardContent>
+                  <MemberDetails member={member} issuedCount={issuedCount} maxIssueLimit={maxIssueLimit} />
+                </CardContent>
+              </Card>
+                : null}
+            </div>
+            <div className="flex-1">
+              {scannedBook ? <Card className="pt-6">
+                <CardContent>
+                  <BookDetails book={scannedBook} />
+                </CardContent>
+              </Card>
+                : null}
+            </div>
+          </div>
+          : null
+      }
     </>
   );
 };

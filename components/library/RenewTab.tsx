@@ -12,6 +12,7 @@ import { formatDisplayDate, type Member } from "@/lib/mock-library-api";
 import { useTransactionOtp } from "@/hooks/useTransactionOtp";
 import { TabAssetData, EmptyStateRow, SubmitBar, OtpVerificationDialog, TransactionRemarkInput } from "./TransactionTabs";
 import { OverdueBooks } from "./OverdueBooks";
+import { Card, CardContent } from "../ui/card";
 
 export const RenewTab = ({
   queuedRenewAssets,
@@ -103,14 +104,28 @@ export const RenewTab = ({
   return (
     <div className="space-y-6">
       <section className="space-y-4">
-        <div className="flex gap-6">
-          <div className="section-frame w-full flex-1 !p-0">
-            <div className="p-5 flex gap-3">
-              <div>
+        <OverdueBooks memberId={member?.name} />
+        <Card className="panel-surface border-border/70 p-0 flex-1">
+          <CardContent className="py-3 px-4 pb-4">
+            <div className="flex gap-3">
+              <div className="flex gap-2 items-center">
                 <p className="section-heading">Issue Date</p>
-                {queuedRenewAssets.length > 0 && queuedRenewAssets[0].member_details?.transaction_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(queuedRenewAssets[0].member_details.transaction_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "mt-1 w-auto justify-start text-left font-normal pointer-events-none text-[#aeaeae]",
+                    !(queuedRenewAssets.length > 0 && queuedRenewAssets[0].member_details?.transaction_date) && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {queuedRenewAssets.length > 0 && queuedRenewAssets[0].member_details?.transaction_date ? (
+                    formatDisplayDate(queuedRenewAssets[0].member_details.transaction_date)
+                  ) : (
+                    <span>--</span>
+                  )}
+                </Button>
               </div>
-              <div>
+              <div className="flex gap-2 items-center">
                 <p className="section-heading">Return Date</p>
                 {queuedRenewAssets.length > 0 ? (
                   <Popover>
@@ -144,81 +159,93 @@ export const RenewTab = ({
                     </PopoverContent>
                   </Popover>
                 ) : (
-                  <p className="mt-1 text-sm text-foreground">--</p>
+                  <Button
+                    variant={"outline"}
+                    className="mt-1 w-auto justify-start text-left font-normal pointer-events-none text-muted-foreground "
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    <span>--</span>
+                  </Button>
                 )}
               </div>
-              <div>
+              <div className="flex gap-2 items-center">
                 <p className="section-heading">Due Date</p>
-                {queuedRenewAssets.length > 0 && queuedRenewAssets[0].member_details?.due_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(queuedRenewAssets[0].member_details.due_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "mt-1 w-auto justify-start text-left font-normal pointer-events-none text-[#aeaeae]",
+                    !(queuedRenewAssets.length > 0 && queuedRenewAssets[0].member_details?.due_date) && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {queuedRenewAssets.length > 0 && queuedRenewAssets[0].member_details?.due_date ? (
+                    formatDisplayDate(queuedRenewAssets[0].member_details.due_date)
+                  ) : (
+                    <span>--</span>
+                  )}
+                </Button>
               </div>
             </div>
-          </div>
-          <div className="flex-1">
-            <OverdueBooks memberId={member?.name} />
-          </div>
-        </div>
-        <div>
-          <p className="section-heading">Renew transaction</p>
-          <p className="mt-1 text-sm text-muted-foreground">Review queued books before renewing.</p>
-        </div>
-        <div className="table-shell">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>No.</TableHead>
-                <TableHead>Access No</TableHead>
-                <TableHead>Book Title</TableHead>
-                <TableHead>Issue Date</TableHead>
-                <TableHead>Previous Due Date</TableHead>
-                <TableHead>Return Date</TableHead>
-                <TableHead>Renew Due Date</TableHead>
-                <TableHead>Due Charges</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
-                    <Loader2 className="mx-auto animate-spin" />
-                  </TableCell>
+                  <TableHead>No.</TableHead>
+                  <TableHead>Access No</TableHead>
+                  <TableHead>Book Title</TableHead>
+                  <TableHead>Issue Date</TableHead>
+                  <TableHead>Previous Due Date</TableHead>
+                  <TableHead>Return Date</TableHead>
+                  <TableHead>Renew Due Date</TableHead>
+                  <TableHead>Due Charges</TableHead>
+                  <TableHead></TableHead>
                 </TableRow>
-              ) : queuedRenewAssets.length > 0 ? (
-                queuedRenewAssets.map((asset, index) => {
-                  const md = asset.member_details;
-                  return (
-                    <TableRow key={asset.asset_id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>{asset.asset_id}</TableCell>
-                      <TableCell className="font-medium text-foreground">{asset.asset_name}</TableCell>
-                      <TableCell>{md?.transaction_date ? formatDisplayDate(md.transaction_date) : "--"}</TableCell>
-                      <TableCell>{md?.due_date ? formatDisplayDate(md.due_date) : "--"}</TableCell>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
+                      <Loader2 className="mx-auto animate-spin" />
+                    </TableCell>
+                  </TableRow>
+                ) : queuedRenewAssets.length > 0 ? (
+                  queuedRenewAssets.map((asset, index) => {
+                    const md = asset.member_details;
+                    return (
+                      <TableRow key={asset.asset_id}>
+                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>{asset.asset_id}</TableCell>
+                        <TableCell className="font-medium text-foreground">{asset.asset_name}</TableCell>
+                        <TableCell>{md?.transaction_date ? formatDisplayDate(md.transaction_date) : "--"}</TableCell>
+                        <TableCell>{md?.due_date ? formatDisplayDate(md.due_date) : "--"}</TableCell>
 
-                      <TableCell>{formatDisplayDate(returnDate)}</TableCell>
-                      <TableCell>{asset.dueDate ? format(new Date(asset.dueDate), 'dd/MM/yyyy') : "—"}</TableCell>
-                      <TableCell>{asset.total_due_charges ?? 0}</TableCell>
-                      <TableCell>
-                        <button
-                          type="button"
-                          className="text-sm font-medium text-destructive hover:underline"
-                          onClick={() => setQueuedRenewAssets(current => current.filter(a => a.asset_id !== asset.asset_id))}
-                        >
-                          Remove
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <EmptyStateRow message="Scan a barcode above and click Renew tab to load transaction." colSpan={9} />
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                        <TableCell>{formatDisplayDate(returnDate)}</TableCell>
+                        <TableCell>{asset.dueDate ? format(new Date(asset.dueDate), 'dd/MM/yyyy') : "—"}</TableCell>
+                        <TableCell>{asset.total_due_charges ?? 0}</TableCell>
+                        <TableCell>
+                          <button
+                            type="button"
+                            className="text-sm font-medium text-destructive hover:underline"
+                            onClick={() => setQueuedRenewAssets(current => current.filter(a => a.asset_id !== asset.asset_id))}
+                          >
+                            Remove
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <EmptyStateRow message="Scan a barcode above and click Renew tab to load transaction." colSpan={9} />
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </section>
 
-      <div className="flex justify-end gap-4">
-        <div className="flex items-center justify-end gap-4 py-4">
+
+      <TransactionRemarkInput remark={remark} setRemark={setRemark} id="renew-remark" />
+      <div className="flex justify-end gap-4 pb-[30px]">
+        <div className="flex items-center justify-end gap-4">
           <label className="text-sm font-medium">Total Due Charges</label>
           <Input
             type="number"
@@ -227,7 +254,7 @@ export const RenewTab = ({
             className="w-32"
           />
         </div>
-        <div className="flex items-center justify-end gap-2 py-4">
+        <div className="flex items-center justify-end gap-2">
           <Switch
             id="createInvoiceCheckbox"
             checked={createInvoice === 1}
@@ -235,20 +262,20 @@ export const RenewTab = ({
           />
           <label htmlFor="createInvoiceCheckbox" className="text-sm font-medium">Create Invoice</label>
         </div>
+        <SubmitBar
+          disabled={submitDisabled}
+          loading={renewMutation.isPending}
+          label="Submit Renew"
+          onClick={() => onSubmitRenew(totalDueCharges, createInvoice)}
+          onGenerateOTP={handleMemberVerification}
+          onVerifyOTP={() => setOtpDialogOpen(true)}
+          verifying={verifying}
+          otpVerified={otpVerified}
+          disableGenerateOTP={!member || queuedRenewAssets.length === 0 || hasDueCharges}
+          disableVerifyOTP={!savedDocName || hasDueCharges}
+        />
       </div>
-      <TransactionRemarkInput remark={remark} setRemark={setRemark} id="renew-remark" />
-      <SubmitBar
-        disabled={submitDisabled}
-        loading={renewMutation.isPending}
-        label="Submit Renew"
-        onClick={() => onSubmitRenew(totalDueCharges, createInvoice)}
-        onGenerateOTP={handleMemberVerification}
-        onVerifyOTP={() => setOtpDialogOpen(true)}
-        verifying={verifying}
-        otpVerified={otpVerified}
-        disableGenerateOTP={!member || queuedRenewAssets.length === 0 || hasDueCharges}
-        disableVerifyOTP={!savedDocName || hasDueCharges}
-      />
+
       <OtpVerificationDialog
         open={otpDialogOpen}
         onOpenChange={setOtpDialogOpen}

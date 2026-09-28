@@ -14,6 +14,7 @@ import { OverdueBooks } from "./OverdueBooks";
 import { submitBookTransaction, generateOTP, getBookTransaction } from "@/services/books";
 import { toast } from "react-toastify";
 import { useTransactionOtp } from "@/hooks/useTransactionOtp";
+import { Card, CardContent } from "../ui/card";
 
 export const ReturnTab = ({
   queuedAssets,
@@ -81,112 +82,138 @@ export const ReturnTab = ({
   return (
     <div className="space-y-6">
       <section className="space-y-4">
-        <div className="flex gap-6">
-          <div className="section-frame w-full flex-1 !p-0">
-            <div className="p-5 flex gap-3">
-              <div>
-                <p className="section-heading">Issue Date</p>
-                {md?.transaction_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(md.transaction_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
-              </div>
-              <div>
-                <p className="section-heading">Return Date</p>
-                <Popover>
-                  <PopoverTrigger asChild>
+
+        <OverdueBooks memberId={member?.name} />
+
+        <Card className="panel-surface border-border/70 p-0 flex-1">
+          <CardContent className="py-3 px-4 pb-4">
+
+            <div >
+              <div className="section-frame1 w-full flex-1 !p-0">
+                <div className="flex gap-3">
+                  <div className="flex gap-2 items-center">
+                    <p className="section-heading">Issue Date: </p>
                     <Button
-                      id="returnDateInput"
                       variant={"outline"}
                       className={cn(
-                        "mt-1 w-auto justify-start text-left font-normal",
-                        !returnDate && "text-muted-foreground"
+                        "mt-1 w-auto justify-start text-left font-normal pointer-events-none text-[#aeaeae]",
+                        !md?.transaction_date && "text-muted-foreground"
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {returnDate ? (
-                        format(new Date(returnDate), "dd/MM/yyyy")
+                      {md?.transaction_date ? (
+                        formatDisplayDate(md.transaction_date)
                       ) : (
-                        <span>Pick a date</span>
+                        <span>--</span>
                       )}
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={returnDate ? new Date(returnDate) : undefined}
-                      onSelect={(date) => {
-                        if (!date) return;
-                        setReturnDate(format(date, "yyyy-MM-dd"));
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <p className="section-heading">Return Date: </p>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="returnDateInput"
+                          variant={"outline"}
+                          className={cn(
+                            "mt-1 w-auto justify-start text-left font-normal",
+                            !returnDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {returnDate ? (
+                            format(new Date(returnDate), "dd/MM/yyyy")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={returnDate ? new Date(returnDate) : undefined}
+                          onSelect={(date) => {
+                            if (!date) return;
+                            setReturnDate(format(date, "yyyy-MM-dd"));
+                          }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <p className="section-heading">Due Date: </p>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "mt-1 w-auto justify-start text-left font-normal pointer-events-none text-[#aeaeae]",
+                        !md?.due_date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {md?.due_date ? (
+                        formatDisplayDate(md.due_date)
+                      ) : (
+                        <span>--</span>
+                      )}
+                    </Button>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="section-heading">Due Date</p>
-                {md?.due_date ? <p className="mt-1 text-sm text-foreground">{formatDisplayDate(md.due_date)}</p> : <p className="mt-1 text-sm text-foreground">--</p>}
-              </div>
-            </div>
-          </div>
-          <div className="flex-1">
-            <OverdueBooks memberId={member?.name} />
-          </div>
-        </div>
-        <div>
-          <p className="section-heading">Return transaction</p>
-          <p className="mt-1 text-sm text-muted-foreground">Review queued books before returning.</p>
-        </div>
-
-        <div className="table-shell">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>No.</TableHead>
-                <TableHead>Access No</TableHead>
-                <TableHead>Book Title</TableHead>
-                <TableHead>Transaction Date</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Return Date</TableHead>
-                <TableHead>Due Charges</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
-                    <Loader2 className="mx-auto animate-spin" />
-                  </TableCell>
-                </TableRow>
-              ) : queuedAssets.length > 0 ? (
-                queuedAssets.map((asset, idx) => (
-                  <TableRow key={asset.asset_id}>
-                    <TableCell>{idx + 1}</TableCell>
-                    <TableCell>{asset.asset_id}</TableCell>
-                    <TableCell className="font-medium text-foreground">{asset.asset_name}</TableCell>
-                    <TableCell>{asset.member_details?.transaction_date ? formatDisplayDate(asset.member_details.transaction_date) : "—"}</TableCell>
-                    <TableCell>{asset.member_details?.due_date ? formatDisplayDate(asset.member_details.due_date) : "—"}</TableCell>
-                    <TableCell>{formatDisplayDate(returnDate)}</TableCell>
-                    <TableCell>{asset.total_due_charges ?? 0}</TableCell>
-                    <TableCell>
-                      <button
-                        type="button"
-                        className="text-sm font-medium text-destructive hover:underline"
-                        onClick={() => setQueuedAssets(queuedAssets.filter(a => a.asset_id !== asset.asset_id))}
-                      >
-                        Remove
-                      </button>
-                    </TableCell>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>No.</TableHead>
+                    <TableHead>Access No</TableHead>
+                    <TableHead>Book Title</TableHead>
+                    <TableHead>Transaction Date</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Return Date</TableHead>
+                    <TableHead>Due Charges</TableHead>
+                    <TableHead></TableHead>
                   </TableRow>
-                ))
-              ) : (
-                <EmptyStateRow message="Scan a barcode above and click Return tab to load transaction." colSpan={8} />
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                        <Loader2 className="mx-auto animate-spin" />
+                      </TableCell>
+                    </TableRow>
+                  ) : queuedAssets.length > 0 ? (
+                    queuedAssets.map((asset, idx) => (
+                      <TableRow key={asset.asset_id}>
+                        <TableCell>{idx + 1}</TableCell>
+                        <TableCell>{asset.asset_id}</TableCell>
+                        <TableCell className="font-medium text-foreground">{asset.asset_name}</TableCell>
+                        <TableCell>{asset.member_details?.transaction_date ? formatDisplayDate(asset.member_details.transaction_date) : "—"}</TableCell>
+                        <TableCell>{asset.member_details?.due_date ? formatDisplayDate(asset.member_details.due_date) : "—"}</TableCell>
+                        <TableCell>{formatDisplayDate(returnDate)}</TableCell>
+                        <TableCell>{asset.total_due_charges ?? 0}</TableCell>
+                        <TableCell>
+                          <button
+                            type="button"
+                            className="text-sm font-medium text-destructive hover:underline"
+                            onClick={() => setQueuedAssets(queuedAssets.filter(a => a.asset_id !== asset.asset_id))}
+                          >
+                            Remove
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <EmptyStateRow message="Scan a barcode above and click Return tab to load transaction." colSpan={8} />
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       </section>
+
+      <TransactionRemarkInput remark={remark} setRemark={setRemark} id="return-remark" />
       <div className="flex justify-end gap-4">
-        <div className="flex items-center justify-end gap-4 py-4">
+        <div className="flex items-center justify-end gap-4">
           <label className="text-sm font-medium">Total Due Charges</label>
           <Input
             type="number"
@@ -195,7 +222,7 @@ export const ReturnTab = ({
             className="w-32"
           />
         </div>
-        <div className="flex items-center justify-end gap-2 py-4">
+        <div className="flex items-center justify-end gap-2">
           <Switch
             id="createInvoiceCheckbox"
             checked={createInvoice === 1}
@@ -203,20 +230,20 @@ export const ReturnTab = ({
           />
           <label htmlFor="createInvoiceCheckbox" className="text-sm font-medium">Create Invoice</label>
         </div>
+        <SubmitBar
+          disabled={submitDisabled}
+          loading={returnMutation.isPending}
+          label="Submit Return"
+          onClick={() => onSubmitReturn(totalDueCharges, createInvoice)}
+          onGenerateOTP={handleMemberVerification}
+          onVerifyOTP={() => setOtpDialogOpen(true)}
+          verifying={verifying}
+          otpVerified={otpVerified}
+          disableGenerateOTP={!member || queuedAssets.length === 0 || hasDueCharges}
+          disableVerifyOTP={!savedDocName || hasDueCharges}
+        />
       </div>
-      <TransactionRemarkInput remark={remark} setRemark={setRemark} id="return-remark" />
-      <SubmitBar
-        disabled={submitDisabled}
-        loading={returnMutation.isPending}
-        label="Submit Return"
-        onClick={() => onSubmitReturn(totalDueCharges, createInvoice)}
-        onGenerateOTP={handleMemberVerification}
-        onVerifyOTP={() => setOtpDialogOpen(true)}
-        verifying={verifying}
-        otpVerified={otpVerified}
-        disableGenerateOTP={!member || queuedAssets.length === 0 || hasDueCharges}
-        disableVerifyOTP={!savedDocName || hasDueCharges}
-      />
+
       <OtpVerificationDialog
         open={otpDialogOpen}
         onOpenChange={setOtpDialogOpen}
